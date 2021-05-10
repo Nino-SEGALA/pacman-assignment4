@@ -26,6 +26,7 @@ import random, time, util, sys
 from game import Directions
 import game
 from util import nearestPoint
+import numpy as np
 
 #################
 # Team creation #
@@ -67,7 +68,6 @@ class ReflexCaptureAgent(CaptureAgent):
     Picks among the actions with the highest Q(s,a).
     """
     actions = gameState.getLegalActions(self.index)
-
     # You can profile your evaluation time by uncommenting these lines
     # start = time.time()
     values = [self.evaluate(gameState, a) for a in actions]
@@ -75,6 +75,35 @@ class ReflexCaptureAgent(CaptureAgent):
 
     maxValue = max(values)
     bestActions = [a for a, v in zip(actions, values) if v == maxValue]
+
+    red = gameState.getRedTeamIndices()
+    blue = gameState.getBlueTeamIndices()
+    my_team = 'blue' if self.index in blue else 'red'
+    team_mate = gameState.getAgentState(blue[blue!=self.index]) if my_team=='blue' \
+                                else gameState.getAgentState(red[red!=self.index])
+    team_mate_x, team_mate_y = team_mate.getPosition()
+    team_mate_pac = team_mate.isPacman*2-1
+ 
+    print('state',team_mate.getPosition())
+
+    
+    
+    walls = np.array([[int(gameState.getWalls()[i][j]) for i in range(gameState.getWalls().width)] \
+                                                         for j in range(gameState.getWalls().height)])
+    food_red = np.array([[int(gameState.getRedFood()[i][j]) for i in range(gameState.getRedFood().width)] \
+                                                        for j in range(gameState.getRedFood().height)])
+    food_blue = np.array([[int(gameState.getBlueFood()[i][j]) for i in range(gameState.getBlueFood().width)] \
+                                                        for j in range(gameState.getBlueFood().height)])
+    food = food_blue - food_red
+                                                        
+    # info_mask = np.zeros(walls.shape)
+    # info_mask[int(team_mate_x)][int(team_mate_y)] = team_mate_pac 
+    print("dist = ",gameState.getAgentDistances())
+    print("food = \n",food)
+    print("walls = \n",walls)
+    # print('info_mask = \n',info_mask)
+    
+
 
     foodLeft = len(self.getFood(gameState).asList())
 
