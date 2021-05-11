@@ -15,9 +15,9 @@ class Network(tfk.Model):
         self.pool = tfkl.MaxPool2D(pool_size=(2, 2))
         self.conv_2 = tfkl.Conv2D(filters=filters_2,kernel_size=kernel_size_2,padding='Same',activation="relu")
         self.flatten = tfkl.Flatten()
-        self.classifier = tfkl.Dense(num_actions,activation="softmax")
+        self.classifier = tfkl.Dense(num_actions,activation="linear")
         self.optimizer = tfk.optimizers.Adam(learning_rate=alpha)
-        self.loss = tfk.losses.CategoricalCrossentropy()
+        self.loss = tfk.losses.MSE
         
 
     def call(self,inputs):
@@ -50,7 +50,9 @@ class Agent():
 
         #initialize networks
         self.NN = Network()
+        self.NN.compile(self.NN.optimizer,self.NN.loss)
         self.target_NN = Network()
+        self.target_NN.compile(self.target_NN.optimizer,self.target_NN.loss)
 
     def add_to_buffer(self, state, action, reward, next_state):
         '''This function does stores the experience into a buffer to use it later for training'''
@@ -86,28 +88,32 @@ class Agent():
             batch = np.random.choice(self.buffer_cnt, self.batch_size, replace=False)
         else:
             batch = np.random.choice(self.buffer_size, self.batch_size, replace=False)
-        batch_ind = np.arange(self.batch_size, dtype=np.int32)
 
-        self.train_network(batch,batch_ind)
+        self.train_network(batch)
     
     def update_step(self):
         '''keep track of steps when there is need to update'''
         self.step +=1
         self.step = self.step % 5
     
-    def train_network(self,batch,batch_ind):
+    def train_network(self,batch):
         '''Train the network given a random batch from the buffer and using a target Network'''
+        #get data
         rewards = self.reward_buffer[batch]
-        is_done = self.done_buffer[batch]
         states = self.state_buffer[batch]
-        actions = self.action_buffer[batch]
+        actions = np.argmax(self.action_buffer[batch],axis=1)
         next_states = self.next_state_buffer[batch]
+        idx = np.arange(len(batch))
         
+        # compute current Q values and Bellman
+        current_val = self.NN(states)
         next_val = self.target_NN(next_states)
+        targets = rewards + self.gamma*tfm.max(next_val,axis=1) # Do I have to use the Bellman error here or is that done in fit ? 
+        current_val = current_val.numpy()
+        current_val[idx,actions] = targets
 
-        targets = rewards + self.gamma*tfm.max(next_val,dim=1) # TODO: check if the dimensions are correct 
-                                                               #        and if actions are taken into account correctly
-        NN.fit(states,targets)
+        #update Network
+        NN.fit(states,current_val)
 
     def update_epsilon(self):
         '''After every episode decrease epsilon by 5%, (e.g explore less and less)'''
@@ -120,6 +126,9 @@ class Agent():
     def update_network(self):
         '''update the target network'''
         self.target_NN = copy.deepcopy(self.NN)
+        "this actually might work better"
+        # for a, b in zip(target_NN.variables, NN.variables):
+        #     a.assign(b) 
 
         
         
