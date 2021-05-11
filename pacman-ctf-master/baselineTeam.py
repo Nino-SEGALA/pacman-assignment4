@@ -76,31 +76,13 @@ class ReflexCaptureAgent(CaptureAgent):
     maxValue = max(values)
     bestActions = [a for a, v in zip(actions, values) if v == maxValue]
 
-    red = gameState.getRedTeamIndices()
-    blue = gameState.getBlueTeamIndices()
-    my_team = 'blue' if self.index in blue else 'red'
-    team_mate = gameState.getAgentState(blue[blue!=self.index]) if my_team=='blue' \
-                                else gameState.getAgentState(red[red!=self.index])
-    team_mate_x, team_mate_y = team_mate.getPosition()
-    team_mate_pac = team_mate.isPacman*2-1
- 
-    print('state',team_mate.getPosition())
-
-    
-    
-    walls = np.array([[int(gameState.getWalls()[i][j]) for i in range(gameState.getWalls().width)] \
-                                                         for j in range(gameState.getWalls().height)])
-    food_red = np.array([[int(gameState.getRedFood()[i][j]) for i in range(gameState.getRedFood().width)] \
-                                                        for j in range(gameState.getRedFood().height)])
-    food_blue = np.array([[int(gameState.getBlueFood()[i][j]) for i in range(gameState.getBlueFood().width)] \
-                                                        for j in range(gameState.getBlueFood().height)])
-    food = food_blue - food_red
+    dataPreProcessed = self.dataInput(gameState)
                                                         
     # info_mask = np.zeros(walls.shape)
     # info_mask[int(team_mate_x)][int(team_mate_y)] = team_mate_pac 
     print("dist = ",gameState.getAgentDistances())
-    print("food = \n",food)
-    print("walls = \n",walls)
+    # print("food = \n",food)
+    # print("walls = \n",walls)
     # print('info_mask = \n',info_mask)
     
 
@@ -155,6 +137,128 @@ class ReflexCaptureAgent(CaptureAgent):
     a counter or a dictionary.
     """
     return {'successorScore': 1.0}
+
+
+  def ourColor(self, gameState):
+    blue = gameState.getBlueTeamIndices()
+    return 'blue' if self.index in blue else 'red'
+
+
+  def teamMateAndOpponentState(self, gameState, color):
+    red = gameState.getRedTeamIndices()
+    blue = gameState.getBlueTeamIndices()
+    team_mate = []
+    opponent = []
+    for i in range(len(blue)):
+        if color == 'blue':
+          if blue[i] != self.index:
+              team_mate.append(gameState.getAgentState(blue[i]))
+          opponent.append(gameState.getAgentState(red[i]))
+        elif color == 'red':
+            if red[i] != self.index:
+                team_mate.append(gameState.getAgentState(red[i]))
+            opponent.append(gameState.getAgentState(blue[i]))
+    # team_mate_x, team_mate_y = team_mate.getPosition()
+    # team_mate_pac = team_mate.isPacman * 2 - 1
+    return team_mate[0], opponent  # one team_mate
+
+  def invert(self, u):
+      (i, j) = u
+      return (int(j), int(i))
+
+  def dataInput(self, gameState):
+    """
+    Returns the preprocessed data for the neural network
+    The matrices are flipped by 180° for the Red team: the output must be flipped also!
+    1. Walls
+    2. Food
+    3. PowerCapsule
+    4. PacManFriend
+    5. ScaredGhostFriend
+    6. PacManOpponent
+    7. ScaredGhostOpponent
+    8. Sides ?
+    """
+
+    color = self.ourColor(gameState)
+    agent_state = gameState.getAgentState(self.index)
+    team_mate_state, opponent_state = self.teamMateAndOpponentState(gameState, color)
+    width = gameState.getWalls().width  # width of the board (32)
+    height = gameState.getWalls().height  # height of the board (16)
+
+    print((width, height))
+
+    # 1
+    walls = np.array([[int(gameState.getWalls()[i][j]) for i in range(width)]
+                      for j in range(height)])
+    print()
+    print("walls")
+    print(walls)
+
+    # 2
+    food_red = np.array([[int(gameState.getRedFood()[i][j]) for i in range(width)]
+                         for j in range(height)])
+    food_blue = np.array([[int(gameState.getBlueFood()[i][j]) for i in range(width)]
+                          for j in range(height)])
+
+    # 3
+    print(gameState.getRedCapsules())
+    power_capsule_red = np.zeros((height, width), dtype=int)
+    for (i, j) in gameState.getRedCapsules():
+        power_capsule_red[j][i] = 1  # invert w and h
+    power_capsule_blue = np.zeros((height, width), dtype=int)
+    for (i, j) in gameState.getBlueCapsules():
+        power_capsule_blue[j][i] = 1  # invert w and h
+
+    if color == 'blue':
+        food = food_blue - food_red
+        power_capsule = power_capsule_blue - power_capsule_red
+    else:
+        food = food_red - food_blue
+        power_capsule = power_capsule_red - power_capsule_blue
+    print("food")
+    print(food)
+    print("power_capsule")
+    print(power_capsule)
+
+    # 4
+    pacman_friend = np.zeros((height, width), dtype=int)
+    if agent_state.scaredTimer == 0:
+        pacman_friend[self.invert(gameState.getAgentPosition(self.index))] = 1  # TODO: check superPacMan
+    if team_mate_state.scaredTimer == 0:
+        pacman_friend[self.invert(team_mate_state.getPosition())] = 1
+    print("pacman_friend")
+    print(pacman_friend)
+
+    # 5
+    scared_ghost_friend = np.zeros((height, width), dtype=int)
+    if agent_state.scaredTimer > 0:
+        scared_ghost_friend[self.invert(gameState.getAgentPosition(self.index))] = 1
+    if team_mate_state.scaredTimer > 0:
+        scared_ghost_friend[self.invert(team_mate_state.getPosition())] = 1
+    print("scared_ghost_friend")
+    print(scared_ghost_friend)
+
+    # 6
+    pacman_opponent = np.zeros((height, width), dtype=int)
+    # TODO : calculate where opponents are
+    """if opponent_state[0].scaredTimer == 0:
+        pacman_opponent[self.invert(opponent_state[0].getPosition())] = 1  # TODO: check superPacMan
+    if opponent_state[1].scaredTimer == 0:
+        pacman_opponent[self.invert(opponent_state[1].getPosition())] = 1"""
+    print("pacman_opponent")
+    print(pacman_opponent)
+
+    # 7
+    scared_ghost_opponent = np.zeros((height, width), dtype=int)
+    """if opponent_state[0].scaredTimer > 0:
+        scared_ghost_opponent[self.invert(opponent_state[0].getPosition())] = 1
+    if opponent_state[1].scaredTimer > 0:
+        scared_ghost_opponent[self.invert(opponent_state[1].getPosition())] = 1"""
+    print("scared_ghost_opponent")
+    print(scared_ghost_opponent)
+
+    return walls, food, power_capsule, pacman_friend, scared_ghost_friend, pacman_opponent, scared_ghost_opponent
 
 class OffensiveReflexAgent(ReflexCaptureAgent):
   """
