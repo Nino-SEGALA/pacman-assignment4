@@ -17,13 +17,14 @@ import random, time, util
 from game import Directions
 import game
 
+
 #################
 # Team creation #
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first = 'DummyAgent', second = 'DummyAgent'):
-  """
+               first='DummyAgent', second='DummyAgent'):
+    """
   This function should return a list of two agents that will form the
   team, initialized using firstIndex and secondIndex as their agent
   index numbers.  isRed is True if the red team is being created, and
@@ -38,22 +39,23 @@ def createTeam(firstIndex, secondIndex, isRed,
   behavior is what you want for the nightly contest.
   """
 
-  # The following line is an example only; feel free to change it.
-  return [eval(first)(firstIndex), eval(second)(secondIndex)]
+    # The following line is an example only; feel free to change it.
+    return [eval(first)(firstIndex), eval(second)(secondIndex)]
+
 
 ##########
 # Agents #
 ##########
 
 class DummyAgent(CaptureAgent):
-  """
+    """
   A Dummy agent to serve as an example of the necessary agent structure.
   You should look at baselineTeam.py for more details about how to
   create an agent as this is the bare minimum.
   """
 
-  def registerInitialState(self, gameState):
-    """
+    def registerInitialState(self, gameState):
+        """
     This method handles the initial setup of the
     agent to populate useful fields (such as what team
     we're on).
@@ -65,28 +67,27 @@ class DummyAgent(CaptureAgent):
     IMPORTANT: This method may run for at most 15 seconds.
     """
 
-    '''
+        '''
     Make sure you do not delete the following line. If you would like to
     use Manhattan distances instead of maze distances in order to save
     on initialization time, please take a look at
     CaptureAgent.registerInitialState in captureAgents.py.
     '''
-    CaptureAgent.registerInitialState(self, gameState)
+        CaptureAgent.registerInitialState(self, gameState)
 
-    '''
+        '''
     Your initialization code goes here, if you need any.
     '''
 
+    def chooseAction(self, gameState):
+        """
+        Picks among actions randomly.
+        """
+        actions = gameState.getLegalActions(self.index)
 
-  def chooseAction(self, gameState):
-    """
-    Picks among actions randomly.
-    """
-    actions = gameState.getLegalActions(self.index)
+        '''
+        You should change this in your own agent.
+        '''
 
-    '''
-    You should change this in your own agent.
-    '''
-
-    return random.choice(actions)
+        return random.choice(actions)
 
