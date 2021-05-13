@@ -86,16 +86,16 @@ def noisyDistance(pos1, pos2):
 
 class GameState:
     """
-  A GameState specifies the full game state, including the food, capsules,
-  agent configurations and score changes.
+    A GameState specifies the full game state, including the food, capsules,
+    agent configurations and score changes.
 
-  GameStates are used by the Game object to capture the actual state of the game and
-  can be used by agents to reason about the game.
+    GameStates are used by the Game object to capture the actual state of the game and
+    can be used by agents to reason about the game.
 
-  Much of the information in a GameState is stored in a GameStateData object.  We
-  strongly suggest that you access that data via the accessor methods below rather
-  than referring to the GameStateData object directly.
-  """
+    Much of the information in a GameState is stored in a GameStateData object.  We
+    strongly suggest that you access that data via the accessor methods below rather
+    than referring to the GameStateData object directly.
+    """
 
     ### Preprocess the data for the network
     # returns our color
@@ -141,7 +141,69 @@ class GameState:
         for i in range(height):
             for j in range(width // 2):
                 first_element = mat[i][j]
-                mat[i][j], mat[height - i - 1][width - j - 1] = mat[height - i - 1][width - j - 1], first_element  # inversion
+                # inversion
+                mat[i][j], mat[height - i - 1][width - j - 1] = mat[height - i - 1][width - j - 1], first_element
+
+    # free neighbours of a box in the matrix
+    def freeNeighbours(self, mat, pos):
+        nghb = []
+        for dir in [(1, 0), (0, 1), (-1, 0), (0, -1)]:
+            new_pos = (pos[0] + dir[0], pos[1] + dir[1])
+            if mat[new_pos[0]][new_pos[1]] == -2:  # not a wall and unvisited for bfs
+                nghb.append(new_pos)
+        return nghb
+
+    # bfs to find the boxes at the right distance of the agent
+    def bfsOnBoard(self, color, agent_pos, distance):
+        # print("just to see : ", color, agent_pos, distance)
+        res = []
+        # preparation
+        width = self.getWalls().width  # width of the board (32)
+        height = self.getWalls().height  # height of the board (16)
+        board = np.array([[-int(self.getWalls()[i][j]) for i in range(width)]
+                          for j in range(height)])
+        for i in range(height):
+            for j in range(width):
+                if board[i][j] == 0:
+                    board[i][j] = -2
+        agent_pos = height - agent_pos[0] - 1, agent_pos[1]  # like display
+        self.reorderMatrixLikeDisplay(board)
+        if color is 'red':
+            self.invertMatrixForRed(board)
+            agent_pos = height - agent_pos[0] - 1, width - agent_pos[1] - 1
+        # print("agent_pos : ", agent_pos)
+        board[agent_pos[0]][agent_pos[1]] = 0  # agent's position
+
+        # BFS
+        lookAt = [agent_pos]  # initialize with agent's position
+        while lookAt:
+            (u, v) = lookAt.pop(0)  # remove first element of lookAt
+            depth = board[u][v]
+            if depth == distance:
+                res.append((u, v))
+            if depth < distance:  # don't look further than distance
+                neighbours = self.freeNeighbours(board, (u, v))
+                for (i, j) in neighbours:
+                    board[i][j] = depth + 1
+                    lookAt.append((i, j))
+
+        # print("bfs : ", board, res)
+
+        return res
+
+    # compare two list to find a common position
+    def findCommonPosition(self, pos1, pos2):
+        for pos in pos1:
+            if pos in pos2:
+                return pos
+
+    # get distances to the opponents
+    def distancesToOpponents(self, agent):
+        dist = self.getAgentDistances()
+        if agent.index % 2 == 0:
+            return [dist[1], dist[3]]
+        return [dist[0], dist[2]]
+
 
     ####################################################
     # Accessor methods: use these to access state data #
@@ -166,7 +228,7 @@ class GameState:
 
         print()
         color = self.ourColor(agent)
-        print(color)
+        print(color, agent.index)
         agent_state = self.getAgentState(agent.index)
         team_mate_state, opponent_state = self.teamMateAndOpponentState(agent, color)
         width = self.getWalls().width  # width of the board (32)
@@ -207,10 +269,10 @@ class GameState:
         if color is 'red':
             self.invertMatrixForRed(food)
             self.invertMatrixForRed(power_capsule)
-        print("food")
-        print(food)
-        print("power_capsule")
-        print(power_capsule)
+        # print("food")
+        # print(food)
+        # print("power_capsule")
+        # print(power_capsule)
 
         # 4
         pacman_friend = np.zeros((height, width), dtype=int)
@@ -233,8 +295,8 @@ class GameState:
         if color is 'red':
             self.invertMatrixForRed(scared_ghost_friend)
         self.reorderMatrixLikeDisplay(scared_ghost_friend)
-        print("scared_ghost_friend")
-        print(scared_ghost_friend)
+        # print("scared_ghost_friend")
+        # print(scared_ghost_friend)
 
         # 6
         pacman_opponent = np.zeros((height, width), dtype=int)
@@ -246,6 +308,27 @@ class GameState:
         self.reorderMatrixLikeDisplay(pacman_opponent)
         if color is 'red':
             self.invertMatrixForRed(pacman_opponent)
+
+        # SIMPLE TEST CASE
+        distToOp = self.distancesToOpponents(agent)
+        # TODO: team_mate distances ?!
+        distaaa = abs(self.invert(self.getAgentPosition(agent.index))[0] - self.invert(team_mate_state.getPosition())[0])
+        distbbb = abs(self.invert(self.getAgentPosition(agent.index))[1] - self.invert(team_mate_state.getPosition())[1])
+        distToTeamMate = distaaa + distbbb
+        distToOpTeamMate = [distToOp[0] + distToTeamMate, distToOp[1] - distToTeamMate]
+        agent_pos = self.invert(self.getAgentPosition(agent.index))
+        team_mate_pos = self.invert(team_mate_state.getPosition())
+        # print("CASE : ", agent_pos, team_mate_pos, distToTeamMate, distToOp, distToOpTeamMate)
+        # print("case 1")
+        boxes1 = self.bfsOnBoard(color, agent_pos, distToOp[0])
+        boxes2 = self.bfsOnBoard(color, team_mate_pos, distToOpTeamMate[0])
+        # print("common position = ", self.findCommonPosition(boxes1, boxes2))
+        # print("case 2")
+        boxes3 = self.bfsOnBoard(color, agent_pos, distToOp[1])
+        boxes4 = self.bfsOnBoard(color, team_mate_pos, distToOpTeamMate[1])
+        # print("common position = ", self.findCommonPosition(boxes3, boxes4))
+        # SIMPLE TEST CASE
+
         print("pacman_opponent")
         print(pacman_opponent)
 
@@ -258,8 +341,8 @@ class GameState:
         self.reorderMatrixLikeDisplay(scared_ghost_opponent)
         if color is 'red':
             self.invertMatrixForRed(scared_ghost_opponent)
-        print("scared_ghost_opponent")
-        print(scared_ghost_opponent)
+        # print("scared_ghost_opponent")
+        # print(scared_ghost_opponent)
 
         return walls, food, power_capsule, pacman_friend, scared_ghost_friend, pacman_opponent, scared_ghost_opponent
 
@@ -374,8 +457,8 @@ class GameState:
 
     def getAgentDistances(self):
         """
-    Returns a noisy distance to each agent.
-    """
+        Returns a noisy distance to each agent.
+        """
         if 'agentDistances' in dir(self):
             return self.agentDistances
         else:
