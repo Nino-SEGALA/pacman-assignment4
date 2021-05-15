@@ -91,10 +91,11 @@ class ReflexCaptureAgent(CaptureAgent):
         """
 
         # test detection of opponents' positions with eaten food
-        if self.color is 'red':
+        '''if self.color is 'red':
             dataPreProcessed = gameState.dataInput(self)
             self.setNewFoodLastStep(gameState)
             return "Stop"
+        '''
 
         actions = gameState.getLegalActions(self.index)
         # You can profile your evaluation time by uncommenting these lines
