@@ -283,8 +283,8 @@ class GameState:
         self.reorderMatrixLikeDisplay(pacman_friend)
         if color is 'red':
             self.invertMatrixForRed(pacman_friend)
-        print("pacman_friend")
-        print(pacman_friend)
+        #print("pacman_friend")
+        #print(pacman_friend)
 
         # 5
         scared_ghost_friend = np.zeros((height, width), dtype=int)
@@ -312,6 +312,9 @@ class GameState:
         self.reorderMatrixLikeDisplay(pacman_opponent)
         if color is 'red':
             self.invertMatrixForRed(pacman_opponent)
+        eatenFood = agent.positionEatenFood(self)
+        for pos in eatenFood:  # already the right positions
+            pacman_opponent[pos] = 1
 
         # SIMPLE TEST CASE
         '''distToOp = self.distancesToOpponents(agent)

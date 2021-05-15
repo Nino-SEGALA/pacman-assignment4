@@ -61,14 +61,41 @@ class ReflexCaptureAgent(CaptureAgent):
     A base class for reflex agents that chooses score-maximizing actions
     """
 
+    def agentColor(self, gameState):
+        blue = gameState.getBlueTeamIndices()
+        return 'blue' if self.index in blue else 'red'
+
     def registerInitialState(self, gameState):
         self.start = gameState.getAgentPosition(self.index)
         CaptureAgent.registerInitialState(self, gameState)
+
+        self.color = self.agentColor(gameState)
+        self.ourFoodLastStep = self.getFood(gameState)
+        self.width = self.ourFoodLastStep.width  # width of the board (32)
+        self.height = self.ourFoodLastStep.height
+        '''if self.color is 'red':  # agent is red, wants to keep an eye on its food
+            food = np.array([[int(gameState.getRedFood()[i][j]) for i in range(self.width)]
+                                for j in range(self.height)])
+            gameState.reorderMatrixLikeDisplay(food)
+            gameState.invertMatrixForRed(food)
+        else:
+            food = np.array([[int(gameState.getBlueFood()[i][j]) for i in range(self.width)]
+                                for j in range(self.height)])
+            gameState.reorderMatrixLikeDisplay(food)'''
+        self.ourFoodLastStep = self.getOurFood(gameState)
+        #print("aaaaa : ", self.ourFoodLastStep)
 
     def chooseAction(self, gameState):
         """
         Picks among the actions with the highest Q(s,a).
         """
+
+        # test detection of opponents' positions with eaten food
+        if self.color is 'red':
+            dataPreProcessed = gameState.dataInput(self)
+            self.setNewFoodLastStep(gameState)
+            return "Stop"
+
         actions = gameState.getLegalActions(self.index)
         # You can profile your evaluation time by uncommenting these lines
         # start = time.time()
@@ -99,6 +126,8 @@ class ReflexCaptureAgent(CaptureAgent):
                     bestAction = action
                     bestDist = dist
             return bestAction
+
+        self.setNewFoodLastStep(gameState)
 
         return random.choice(bestActions)
 
@@ -137,6 +166,32 @@ class ReflexCaptureAgent(CaptureAgent):
     a counter or a dictionary.
     """
         return {'successorScore': 1.0}
+
+    def getOurFood(self, gameState):
+        if self.color is 'red':  # agent is red, wants to keep an eye on its food
+            food = np.array([[int(gameState.getRedFood()[i][j]) for i in range(self.width)]
+                             for j in range(self.height)])
+            gameState.reorderMatrixLikeDisplay(food)
+            gameState.invertMatrixForRed(food)
+        else:
+            food = np.array([[int(gameState.getBlueFood()[i][j]) for i in range(self.width)]
+                             for j in range(self.height)])
+            gameState.reorderMatrixLikeDisplay(food)
+        return food
+
+    def setNewFoodLastStep(self, gameState):
+        self.ourFoodLastStep = self.getOurFood(gameState)
+        #print("bbbbb : ", self.ourFoodLastStep)
+
+    def positionEatenFood(self, gameState):
+        newFood = self.getOurFood(gameState)
+        res = []
+        for i in range(self.height):
+            for j in range(self.width):
+                # food eaten by opponent
+                if self.ourFoodLastStep[i][j] == 1 and newFood[i][j] == 0:
+                    res.append((i, j))
+        return res
 
 
 class OffensiveReflexAgent(ReflexCaptureAgent):
