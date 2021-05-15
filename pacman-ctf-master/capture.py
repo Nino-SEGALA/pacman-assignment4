@@ -301,16 +301,20 @@ class GameState:
         # 6
         pacman_opponent = np.zeros((height, width), dtype=int)
         # TODO : calculate where opponents are
-        """if opponent_state[0].scaredTimer == 0:
-        pacman_opponent[self.invert(opponent_state[0].getPosition())] = 1  # TODO: check superPacMan
+        if opponent_state[0].scaredTimer == 0:
+            pos1 = opponent_state[0].getPosition()
+            if pos1:
+                pacman_opponent[self.invert(pos1)] = 1  # TODO: check superPacMan
         if opponent_state[1].scaredTimer == 0:
-        pacman_opponent[self.invert(opponent_state[1].getPosition())] = 1"""
+            pos2 = opponent_state[1].getPosition()
+            if pos2:
+                pacman_opponent[self.invert(pos2)] = 1
         self.reorderMatrixLikeDisplay(pacman_opponent)
         if color is 'red':
             self.invertMatrixForRed(pacman_opponent)
 
         # SIMPLE TEST CASE
-        distToOp = self.distancesToOpponents(agent)
+        '''distToOp = self.distancesToOpponents(agent)
         # TODO: team_mate distances ?!
         distaaa = abs(self.invert(self.getAgentPosition(agent.index))[0] - self.invert(team_mate_state.getPosition())[0])
         distbbb = abs(self.invert(self.getAgentPosition(agent.index))[1] - self.invert(team_mate_state.getPosition())[1])
@@ -325,7 +329,7 @@ class GameState:
         # print("common position = ", self.findCommonPosition(boxes1, boxes2))
         # print("case 2")
         boxes3 = self.bfsOnBoard(color, agent_pos, distToOp[1])
-        boxes4 = self.bfsOnBoard(color, team_mate_pos, distToOpTeamMate[1])
+        boxes4 = self.bfsOnBoard(color, team_mate_pos, distToOpTeamMate[1])'''
         # print("common position = ", self.findCommonPosition(boxes3, boxes4))
         # SIMPLE TEST CASE
 
