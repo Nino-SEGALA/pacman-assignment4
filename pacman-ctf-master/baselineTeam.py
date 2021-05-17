@@ -27,7 +27,32 @@ from game import Directions
 import game
 from util import nearestPoint
 import numpy as np
+import agent as a
+import tensorflow as tf
+from state import State
 
+tfk = tf.keras
+
+ACTIONS = {'North':0,'South':1,'East':2,'West':3,'Stop':4}
+ACTIONS_VALUE = {0:'North',1:'South',2:'East',3:'West',4:'Stop'}
+
+agent_red = a.Agent(n_actions=5, gamma=0.99, epsilon=0.1, alpha=0.5, state_dim = (18,34,2), batch_size=64,
+            buffer_size=(30000,), eps_final=0.01, name='Network_red')
+try:
+  agent_red.NN = tfk.models.load_model('models/network_red')
+  agent_red.target_NN = tfk.models.load_model('models/target_red')
+  print('loaded old model red')
+except:
+  print("couldn't load red")
+
+agent_blue = a.Agent(n_actions=5, gamma=0.99, epsilon=0.1, alpha=0.5, state_dim = (18,34,2), batch_size=64,
+            buffer_size=(30000,), eps_final=0.01,name='Network_blue')
+try:
+  agent_blue.NN = tfk.models.load_model('models/network_blue')
+  agent_blue.target_NN = tfk.models.load_model('models/target_blue')
+  print('loaded old model blue')
+except:
+  print("couldn't load blue")
 #################
 # Team creation #
 #################
@@ -62,63 +87,49 @@ class ReflexCaptureAgent(CaptureAgent):
   def registerInitialState(self, gameState):
     self.start = gameState.getAgentPosition(self.index)
     CaptureAgent.registerInitialState(self, gameState)
+    self.red = gameState.getRedTeamIndices()
+    self.blue = gameState.getBlueTeamIndices()
+    self.my_team = 'blue' if self.index in self.blue else 'red'
+    if self.my_team == 'blue':
+      self.agent = agent_blue
+    else:
+      self.agent = agent_red
+    self.saved = False
+    self.states = State(self.index)
+    self.ourFoodLastStep = self.getFood(gameState)
+    self.width = self.ourFoodLastStep.width  # width of the board (32)
+    self.height = self.ourFoodLastStep.height
 
   def chooseAction(self, gameState):
     """
     Picks among the actions with the highest Q(s,a).
     """
+    c_state = self.states.dataInput(gameState, self)
+    if gameState.data.timeleft <= 2 and not self.saved:
+      print('almost over')
+      self.agent.NN.save(f'models/network_{self.my_team}')
+      self.agent.target_NN.save(f'models/target_{self.my_team}')
+      self.saved = True
+
     actions = gameState.getLegalActions(self.index)
+    possible_actions = [ACTIONS[key] for key in actions]
+    
     # You can profile your evaluation time by uncommenting these lines
     # start = time.time()
-    values = [self.evaluate(gameState, a) for a in actions]
+    action = self.agent.get_action(state, possible_actions)
+    best_action = ACTIONS_VALUE[action]
     # print('eval time for agent %d: %.4f' % (self.index, time.time() - start))
-
-    maxValue = max(values)
-    bestActions = [a for a, v in zip(actions, values) if v == maxValue]
-
-    red = gameState.getRedTeamIndices()
-    blue = gameState.getBlueTeamIndices()
-    my_team = 'blue' if self.index in blue else 'red'
-    team_mate = gameState.getAgentState(blue[blue!=self.index]) if my_team=='blue' \
-                                else gameState.getAgentState(red[red!=self.index])
-    team_mate_x, team_mate_y = team_mate.getPosition()
-    team_mate_pac = team_mate.isPacman*2-1
- 
-    print('state',team_mate.getPosition())
-
     
-    
-    walls = np.array([[int(gameState.getWalls()[i][j]) for i in range(gameState.getWalls().width)] \
-                                                         for j in range(gameState.getWalls().height)])
-    food_red = np.array([[int(gameState.getRedFood()[i][j]) for i in range(gameState.getRedFood().width)] \
-                                                        for j in range(gameState.getRedFood().height)])
-    food_blue = np.array([[int(gameState.getBlueFood()[i][j]) for i in range(gameState.getBlueFood().width)] \
-                                                        for j in range(gameState.getBlueFood().height)])
-    food = food_blue - food_red
-                                                        
-    # info_mask = np.zeros(walls.shape)
-    # info_mask[int(team_mate_x)][int(team_mate_y)] = team_mate_pac 
-    print("dist = ",gameState.getAgentDistances())
-    print("food = \n",food)
-    print("walls = \n",walls)
-    # print('info_mask = \n',info_mask)
-    
+    action_ohc = np.zeros(5)
+    action_ohc[action] = 1.0
+    reward = np.random.rand()
+    s1,s2,s3,s4 = state.shape
+    next_state = np.random.rand(s1,s2,s3,s4)
+    self.agent.add_to_buffer(state, action_ohc, reward, next_state)
+    self.agent.update_step()
+    self.agent.learn()
 
-
-    foodLeft = len(self.getFood(gameState).asList())
-
-    if foodLeft <= 2:
-      bestDist = 9999
-      for action in actions:
-        successor = self.getSuccessor(gameState, action)
-        pos2 = successor.getAgentPosition(self.index)
-        dist = self.getMazeDistance(self.start,pos2)
-        if dist < bestDist:
-          bestAction = action
-          bestDist = dist
-      return bestAction
-
-    return random.choice(bestActions)
+    return best_action
 
   def getSuccessor(self, gameState, action):
     """
@@ -155,6 +166,31 @@ class ReflexCaptureAgent(CaptureAgent):
     a counter or a dictionary.
     """
     return {'successorScore': 1.0}
+  
+  def getOurFood(self, gameState):
+          if self.my_team is 'red':  # agent is red, wants to keep an eye on its food
+              food = np.array([[int(gameState.getRedFood()[i][j]) for i in range(self.width)]
+                              for j in range(self.height)])
+              self.states.reorderMatrixLikeDisplay(gameState,food)
+              self.states.invertMatrixForRed(gameState,food)
+          else:
+              food = np.array([[int(gameState.getBlueFood()[i][j]) for i in range(self.width)]
+                              for j in range(self.height)])
+              self.states.reorderMatrixLikeDisplay(gameState,food)
+          return food
+
+  def setNewFoodLastStep(self, gameState):
+      self.ourFoodLastStep = self.getOurFood(gameState)
+
+  def positionEatenFood(self, gameState):
+        newFood = self.getOurFood(gameState)
+        res = []
+        for i in range(self.height):
+            for j in range(self.width):
+                # food eaten by opponent
+                if self.ourFoodLastStep[i][j] == 1 and newFood[i][j] == 0:
+                    res.append((i, j))
+        return res
 
 class OffensiveReflexAgent(ReflexCaptureAgent):
   """
@@ -214,3 +250,5 @@ class DefensiveReflexAgent(ReflexCaptureAgent):
 
   def getWeights(self, gameState, action):
     return {'numInvaders': -1000, 'onDefense': 100, 'invaderDistance': -10, 'stop': -100, 'reverse': -2}
+
+
