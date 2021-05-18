@@ -226,9 +226,9 @@ class GameState:
         """
         # needs the functions: ourColor, teamMateAndOpponentState, invert, reorderMatrixLikeDisplay, invertMatrixForRed
 
-        print()
+        #print()
         color = self.ourColor(agent)
-        print(color, agent.index)
+        #print(color, agent.index)
         agent_state = self.getAgentState(agent.index)
         team_mate_state, opponent_state = self.teamMateAndOpponentState(agent, color)
         width = self.getWalls().width  # width of the board (32)
@@ -240,8 +240,8 @@ class GameState:
         self.reorderMatrixLikeDisplay(walls)
         if color is 'red':
             self.invertMatrixForRed(walls)
-        print("walls")
-        print(walls)
+        #print("walls")
+        #print(walls)
 
         # 2
         food_red = np.array([[int(self.getRedFood()[i][j]) for i in range(width)]
@@ -250,7 +250,7 @@ class GameState:
                               for j in range(height)])
 
         # 3
-        print(self.getRedCapsules())
+        #(self.getRedCapsules())
         power_capsule_red = np.zeros((height, width), dtype=int)
         for (i, j) in self.getRedCapsules():
             power_capsule_red[j][i] = 1  # invert w and h
@@ -336,8 +336,8 @@ class GameState:
         # print("common position = ", self.findCommonPosition(boxes3, boxes4))
         # SIMPLE TEST CASE
 
-        print("pacman_opponent")
-        print(pacman_opponent)
+        #print("pacman_opponent")
+        #print(pacman_opponent)
 
         # 7
         scared_ghost_opponent = np.zeros((height, width), dtype=int)

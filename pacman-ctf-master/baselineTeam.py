@@ -27,6 +27,7 @@ from game import Directions
 import game
 from util import nearestPoint
 import numpy as np
+import state
 
 
 #################
@@ -64,6 +65,12 @@ class ReflexCaptureAgent(CaptureAgent):
     def agentColor(self, gameState):
         blue = gameState.getBlueTeamIndices()
         return 'blue' if self.index in blue else 'red'
+
+    def teammateIndex(self):
+        return 2 - self.index + 2 * (self.index % 2 == 1)
+
+    def opponentsIndex(self):
+        return [1, 3] if (self.index % 2 == 0) else [0, 2]
 
     def registerInitialState(self, gameState):
         self.start = gameState.getAgentPosition(self.index)
@@ -107,10 +114,15 @@ class ReflexCaptureAgent(CaptureAgent):
         bestActions = [a for a, v in zip(actions, values) if v == maxValue]
 
         dataPreProcessed = gameState.dataInput(self)
+        """state = state.State(self.color, gameState.getScore(), dataPreProcessed[0], dataPreProcessed[1],
+                            self.index, self.teammateIndex, self.opponentsIndex()[0], self.opponentsIndex()[1], )"""
+        '''(self, color, score, wall, food, main_index, teammate_index, main_position, teammate_position,
+                 main_collected, teammate_collected, team_scared, opponent_scared, opponent_index1,
+                 opponent_index2, opponent_position1=None, opponent_position2=None, opponent_collected=None)'''
 
         # info_mask = np.zeros(walls.shape)
         # info_mask[int(team_mate_x)][int(team_mate_y)] = team_mate_pac
-        print("dist = ", gameState.getAgentDistances())
+        #print("dist = ", gameState.getAgentDistances())
         # print("food = \n",food)
         # print("walls = \n",walls)
         # print('info_mask = \n',info_mask)

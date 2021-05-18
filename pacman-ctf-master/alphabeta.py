@@ -38,6 +38,8 @@ def main():
 
 # return the value of a state for a player
 def heuristic(state, player):
+    # score
+    # collected
     return 0
 
 

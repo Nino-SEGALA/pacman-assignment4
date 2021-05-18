@@ -3,10 +3,16 @@ import copy
 def new_position(pos1, pos2):
     return pos1[0] + pos2[0], pos1[1] + pos2[1]
 
+def same_team(index1, index2):
+    if (index1 % 2 == 0 and index2 % 2 == 0) or (index1 % 2 == 1 and index2 % 2 == 1):
+        return True
+    return  False
+
 class State:
-    def __init__(self, score, wall, food, main_index, teammate_index, main_position, teammate_position, main_collected,
-                 teammate_collected, opponent_index1=None, opponent_index2=None, opponent_position1=None,
-                 opponent_position2=None, opponent_collected=None):
+    def __init__(self, color, score, wall, food, main_index, teammate_index, main_position, teammate_position,
+                 main_collected, teammate_collected, team_scared, opponent_scared, opponent_index1,
+                 opponent_index2, opponent_position1=None, opponent_position2=None, opponent_collected=None):
+        self.color = color
         self.score = score
         self.wall = wall
         self.food = food
@@ -25,6 +31,9 @@ class State:
         self.mainCollected = main_collected  # collected food of the agent who plays
         self.teammateCollected = teammate_collected  # collected food of teammate
         self.opponentCollected = opponent_collected  # collected food of opponent
+        # scared
+        self.teamScared = team_scared
+        self.opponentScared = opponent_scared
 
     def position_index(self, index):
         correspond = [(self.mainIndex, self.mainPosition), (self.teammateIndex, self.teammatePosition),
@@ -54,21 +63,61 @@ class State:
 
     def update_food(self, index):
         if index == self.mainIndex:
-            return self.main_collected + 1, self.teammate_collected, self.opponent_collected
+            return self.mainCollected + 1, self.teammateCollected, self.opponentCollected
         elif index == self.teammateIndex:
-            return self.main_collected, self.teammate_collected + 1, self.opponent_collected
+            return self.mainCollected, self.teammateCollected + 1, self.opponentCollected
         else:
-            return self.main_collected, self.teammate_collected, self.opponent_collected + 1
+            return self.mainCollected, self.teammateCollected, self.opponentCollected + 1
 
     def update_position(self, index, new_pos):
         if index == self.mainIndex:
-            return new_pos, self.teammate_position, self.opponent_position1, self.opponent_position2
+            return new_pos, self.teammatePosition, self.opponentPosition1, self.opponentPosition2
         elif index == self.teammateIndex:
-            return self.main_position, new_pos, self.opponent_position1,  self.opponent_position2
-        elif index == self.opponent_index1:
-            return self.main_position, self.teammate_position, new_pos,  self.opponent_position2
-        else
-            return self.main_position, self.teammate_position,  self.opponent_position1, new_pos
+            return self.mainPosition, new_pos, self.opponentPosition1,  self.opponentPosition2
+        elif index == self.opponentIndex1:
+            return self.mainPosition, self.teammatePosition, new_pos,  self.opponentPosition2
+        else:
+            return self.mainPosition, self.teammatePosition,  self.opponentPosition1, new_pos
+
+    def is_red(self):
+        return 1 if self.color == 'red' else -1
+
+    def update_score(self, index, new_pos):
+        vertical = new_pos[1]
+        limit = len(self.wall[0])
+        if index == self.mainIndex:
+            if vertical == limit and self.mainCollected > 0:  # returns home with collected food
+                self.score += self.is_red() * self.mainCollected
+                self.mainCollected = 0
+        elif index == self.teammateIndex:
+            if vertical == limit and self.teammateCollected > 0:  # returns home with collected food
+                self.score += self.is_red() * self.teammateCollected
+                self.teammateCollected = 0
+        else:
+            if vertical == limit - 1 and self.opponentCollected > 0:  # returns home with collected food
+                self.score += self.is_red() * self.opponentCollected  # "1 opponent care all the collected food"
+                self.opponentCollected = 0
+
+    def in_homebase(self, index, new_pos):
+        limit = len(self.wall[0])
+        if same_team(index, self.mainIndex):  # right part of the field
+            if new_pos[1] >= limit:  # right side
+                return True
+        else:  # left part of field
+            if new_pos[1] < limit:  # left side
+                return True
+        return False
+
+    """def pacman_eaten(self, index, new_pos):
+        # TODO: scared?
+        correspond = [(self.mainIndex, self.mainPosition), (self.teammateIndex, self.teammatePosition),
+                      (self.opponentIndex1, self.opponentPosition1), (self.opponentIndex2, self.opponentPosition2)]
+        for (ind, pos) in correspond:
+            if ind != index:  # not ourself
+                if pos == new_pos:  # 2 agents, same position
+                    if not same_team(index, ind):  # different team
+                        if self.in_homebase(index, new_pos):  # index, new_pos in homebase: ghost
+                            if same_team(index, self.mainIndex):"""
 
     def next_states(self, index):
         children = []
@@ -79,11 +128,16 @@ class State:
             food_cond, food = self.food_after_move(new_pos)  # food matrix
             if food_cond:
                 main_coll, teammate_coll, opponent_coll = self.update_food(index)  # collected food
-            # score
-            # PacMan eaten
-            # TODO: calculate what changes
-            new_state = State(self.score, self.wall, food, self.main_index, self.teammate_index, main_pos, teammate_pos,
-                              main_coll, teammate_coll, self.opponent_index1, self.opponent_index2, opp_pos1, opp_pos2,
-                              opponent_coll)
-
+            else:
+                main_coll, teammate_coll, opponent_coll = self.mainCollected, self.teammateCollected, \
+                                                          self.opponentCollected
+            self.update_score(index, new_pos)
+            new_state = State(self.score, self.wall, food, self.mainIndex, self.teammateIndex, main_pos, teammate_pos,
+                              main_coll, teammate_coll, self.team_scared, self.opponent_scared, self.opponentIndex1,
+                              self.opponentIndex2, opp_pos1, opp_pos2, opponent_coll)
+            children.append((move, new_state))
+        print("CHILDREN :")
+        for (move, child) in children:
+            print(move, children)
+        print("End children")
         return children
