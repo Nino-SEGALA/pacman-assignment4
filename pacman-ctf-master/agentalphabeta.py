@@ -97,7 +97,7 @@ class AgentAlphaBeta(CaptureAgent):
                              for j in range(height)])
         food_blue = np.array([[int(gameState.getBlueFood()[i][j]) for i in range(width)]
                               for j in range(height)])
-        if color is 'blue':
+        if color is 'red':
             food = food_blue - food_red
         else:
             food = food_red - food_blue
