@@ -6,7 +6,7 @@ def new_position(pos1, pos2):
 def same_team(index1, index2):
     if (index1 % 2 == 0 and index2 % 2 == 0) or (index1 % 2 == 1 and index2 % 2 == 1):
         return True
-    return  False
+    return False
 
 class State:
     def __init__(self, color, score, wall, food, main_index, teammate_index, main_position, teammate_position,

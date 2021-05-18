@@ -40,6 +40,8 @@ def main():
 def heuristic(state, player):
     # score
     # collected
+    # distance coins
+    # distance home
     return 0
 
 
@@ -53,22 +55,22 @@ def nextStates(state, player):
 def alphabeta(state, depth, alpha, beta, player):
     """simulate the different possibilities for depth moves and use minimax logic to find the best option"""
     if depth == 0:  # or end of game
-        return heuristic(state, player)
+        return heuristic(state)
 
-    elif player is 'red':
+    elif state.sameTeam(player, state.mainIndex):  # team MAX
         v = - np.inf
         children = nextStates(state, player)
         for child in children:
-            v = max(v, alphabeta(child, depth-1, alpha, beta, 'blue'))
+            v = max(v, alphabeta(child, depth-1, alpha, beta, (player+1) % 4))
             alpha = max(alpha, v)
             if beta <= alpha:  # beta pruning
                 break
 
-    else:  # 'blue'
+    else:  # team MIN
         v = np.inf
         children = nextStates(state, player)
         for child in children:
-            v = min(v, alphabeta(child, depth-1, alpha, beta, 'red'))
+            v = min(v, alphabeta(child, depth-1, alpha, beta, (player+1) % 4))
             beta = min(beta, v)
             if beta <= alpha:  # alpha pruning
                 break
