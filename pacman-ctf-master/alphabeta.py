@@ -2,6 +2,7 @@ import multiprocessing
 import time
 from draft import choosenAction
 import numpy as np
+import state as stt
 
 
 # Your foo function
@@ -36,8 +37,15 @@ def main():
     return choosenAction.value
 
 
+def convert_move(move):
+    conv = [((1, 0), "South"), ((0, 1), "East"), ((-1, 0), "North"), ((0, -1), "West"), ((0, 0), "Stop")]
+    for (direction, command) in conv:
+        if move == direction:
+            return command
+
+
 # return the value of a state for a player
-def heuristic(state, player):
+def heuristic(state):
     # score
     # collected
     # distance coins
@@ -45,34 +53,50 @@ def heuristic(state, player):
     return 0
 
 
-# return the next states after the different possible moves for a state and a player
-def nextStates(state, player):
-    return []
-
-
-# TODO : player 1,2,3,4 or index?!
 # alpha beta algorithm
-def alphabeta(state, depth, alpha, beta, player):
+def alphabeta(state, depth, alpha, beta, player, getBestMove=False):
     """simulate the different possibilities for depth moves and use minimax logic to find the best option"""
     if depth == 0:  # or end of game
+        print("aB | depth 0")
         return heuristic(state)
 
-    elif state.sameTeam(player, state.mainIndex):  # team MAX
+    elif stt.same_team(player, state.mainIndex):  # team MAX
+        print("aB | MAX")
         v = - np.inf
-        children = nextStates(state, player)
-        for child in children:
-            v = max(v, alphabeta(child, depth-1, alpha, beta, (player+1) % 4))
+        bestMove = None
+        children = state.next_states(player)
+        for (move, child) in children:
+            v_old = v
+            next_player = (player+1) % 4
+            v = max(v, alphabeta(child, depth-1, alpha, beta, next_player))
+            if getBestMove and v != v_old:
+                bestMove = move
             alpha = max(alpha, v)
             if beta <= alpha:  # beta pruning
                 break
 
+        if getBestMove:
+            return convert_move(bestMove)
+
     else:  # team MIN
+        print("aB | MIN")
         v = np.inf
-        children = nextStates(state, player)
-        for child in children:
-            v = min(v, alphabeta(child, depth-1, alpha, beta, (player+1) % 4))
-            beta = min(beta, v)
+        # TODO: opponent's position known ?
+        if not state.position_index(player):  # None : unknown
+            print("aB | Opp_pos unknown")
+            next_player = (player + 1) % 4
+            v = min(v, alphabeta(state, depth - 1, alpha, beta, next_player))
+            """beta = min(beta, v)
             if beta <= alpha:  # alpha pruning
-                break
+                break"""
+
+        else:
+            children = state.next_states(player)
+            for (move, child) in children:
+                next_player = (player+1) % 4
+                v = min(v, alphabeta(child, depth-1, alpha, beta, next_player))
+                beta = min(beta, v)
+                if beta <= alpha:  # alpha pruning
+                    break
 
     return v

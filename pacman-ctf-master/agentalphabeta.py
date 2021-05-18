@@ -2,7 +2,9 @@ from captureAgents import CaptureAgent
 # from game import Directions
 import numpy as np
 import state
+import alphabeta
 
+TIME_LIMIT = 0.95
 
 #################
 # Team creation #
@@ -141,13 +143,21 @@ class AgentAlphaBeta(CaptureAgent):
         Picks the best action given to alphabeta
         """
 
+        print()
         print("- chooseAction -")
 
         actions = gameState.getLegalActions(self.index)
 
         state = self.createStateFromGameState(gameState)
         #state.printState()
-        children = state.next_states(self.index)
+        #children = state.next_states(self.index)
 
-        print("alpha beta agent : ", actions[0])
-        return actions[0]
+        depth = 4
+        alpha = - np.inf
+        beta = np.inf
+        player = self.index
+        bestMove = alphabeta.alphabeta(state, depth, alpha, beta, player, getBestMove=True)
+        print("chooseAction : bestMove = ", bestMove)
+
+        #print("alpha beta agent : ", bestMove)
+        return bestMove
