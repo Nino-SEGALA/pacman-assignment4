@@ -199,7 +199,6 @@ class ReflexCaptureAgent(CaptureAgent):
     def positionEatenFood(self, gameState):
         newFood = self.getOurFood(gameState)
         res = []
-        print("blabla : ", self.ourFoodLastStep.shape)
         for i in range(self.height):
             for j in range(self.width):
                 # food eaten by opponent

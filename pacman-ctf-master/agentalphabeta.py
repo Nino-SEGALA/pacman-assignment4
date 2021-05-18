@@ -130,15 +130,6 @@ class AgentAlphaBeta(CaptureAgent):
 
         opponent_collected = opponent1_state.numCarrying + opponent2_state.numCarrying
 
-        print()
-        print("createStateFromGameState")
-        print(wall)
-        print(color, score)
-        print(main_index, teammate_index, main_position, teammate_position)
-        print(main_collected, teammate_collected, team_scared, opponent_scared)
-        print(opponent_index1, opponent_index2, opponent_position1, opponent_position2, opponent_collected)
-        print()
-
         return state.State(color, score, wall, food, main_index, teammate_index, main_position, teammate_position,
                            main_collected, teammate_collected, team_scared, opponent_scared, opponent_index1,
                            opponent_index2, opponent_position1, opponent_position2, opponent_collected)
@@ -150,9 +141,13 @@ class AgentAlphaBeta(CaptureAgent):
         Picks the best action given to alphabeta
         """
 
+        print("- chooseAction -")
+
         actions = gameState.getLegalActions(self.index)
 
         state = self.createStateFromGameState(gameState)
+        #state.printState()
+        children = state.next_states(self.index)
 
         print("alpha beta agent : ", actions[0])
         return actions[0]

@@ -35,6 +35,16 @@ class State:
         self.teamScared = team_scared
         self.opponentScared = opponent_scared
 
+    def printState(self):
+        print()
+        print("printState")
+        print(self.wall)
+        print(self.color, self.score)
+        print(self.mainIndex, self.teammateIndex, self.mainPosition, self.teammatePosition)
+        print(self.mainCollected, self.teammateCollected, self.teamScared, self.opponentScared)
+        print(self.opponentIndex1, self.opponentIndex2, self.opponentPosition1, self.opponentPosition2, self.opponentCollected)
+        print()
+
     def position_index(self, index):
         correspond = [(self.mainIndex, self.mainPosition), (self.teammateIndex, self.teammatePosition),
                       (self.opponentIndex1, self.opponentPosition1), (self.opponentIndex2, self.opponentPosition2)]
@@ -82,21 +92,23 @@ class State:
     def is_red(self):
         return 1 if self.color == 'red' else -1
 
-    def update_score(self, index, new_pos):
+    def new_score(self, index, new_pos):
         vertical = new_pos[1]
         limit = len(self.wall[0])
+        new_score = self.score
         if index == self.mainIndex:
             if vertical == limit and self.mainCollected > 0:  # returns home with collected food
-                self.score += self.is_red() * self.mainCollected
+                new_score += self.is_red() * self.mainCollected
                 self.mainCollected = 0
         elif index == self.teammateIndex:
             if vertical == limit and self.teammateCollected > 0:  # returns home with collected food
-                self.score += self.is_red() * self.teammateCollected
+                new_score += self.is_red() * self.teammateCollected
                 self.teammateCollected = 0
         else:
             if vertical == limit - 1 and self.opponentCollected > 0:  # returns home with collected food
-                self.score += self.is_red() * self.opponentCollected  # "1 opponent care all the collected food"
+                new_score += self.is_red() * self.opponentCollected  # "1 opponent care all the collected food"
                 self.opponentCollected = 0
+        return new_score
 
     def in_homebase(self, index, new_pos):
         limit = len(self.wall[0])
@@ -131,13 +143,16 @@ class State:
             else:
                 main_coll, teammate_coll, opponent_coll = self.mainCollected, self.teammateCollected, \
                                                           self.opponentCollected
-            self.update_score(index, new_pos)
-            new_state = State(self.score, self.wall, food, self.mainIndex, self.teammateIndex, main_pos, teammate_pos,
-                              main_coll, teammate_coll, self.team_scared, self.opponent_scared, self.opponentIndex1,
+            new_score = self.new_score(index, new_pos)
+            new_state = State(self.color, new_score, self.wall, food, self.mainIndex, self.teammateIndex, main_pos, teammate_pos,
+                              main_coll, teammate_coll, self.teamScared, self.opponentScared, self.opponentIndex1,
                               self.opponentIndex2, opp_pos1, opp_pos2, opponent_coll)
+
+            #print("new state : ", move)
+            #new_state.printState()
             children.append((move, new_state))
-        print("CHILDREN :")
-        for (move, child) in children:
-            print(move, children)
-        print("End children")
+        #print("CHILDREN :")
+        #for (move, child) in children:
+            #print(move, children)
+        #print("End children")
         return children
