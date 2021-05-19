@@ -63,9 +63,12 @@ class State:
                 res.append(move)
         return res
 
-    def food_after_move(self, position_after_move):
+    def food_after_move(self, index, position_after_move):
         i, j = position_after_move
-        if self.food[i][j] != 0:
+        if (self.food[i][j] == 1 and same_team(index, self.mainIndex)) or \
+                (self.food[i][j] == -1 and not same_team(index, self.mainIndex)):
+            print("food_after_move :", self.food[i][j], index, position_after_move)
+            print(self.food)
             new_food = copy.deepcopy(self.food)
             new_food[i][j] = 0
             return True, new_food
@@ -137,7 +140,7 @@ class State:
         for move in self.possible_moves(index):
             new_pos = new_position(position, move)  # positions
             main_pos, teammate_pos, opp_pos1, opp_pos2 = self.update_position(index, new_pos)
-            food_cond, food = self.food_after_move(new_pos)  # food matrix
+            food_cond, food = self.food_after_move(index, new_pos)  # food matrix
             if food_cond:
                 main_coll, teammate_coll, opponent_coll = self.update_food(index)  # collected food
             else:

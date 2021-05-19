@@ -5,6 +5,7 @@ import state
 import alphabeta
 
 TIME_LIMIT = 0.95
+DEPTH = 2
 
 #################
 # Team creation #
@@ -101,6 +102,9 @@ class AgentAlphaBeta(CaptureAgent):
             food = food_blue - food_red
         else:
             food = food_red - food_blue
+        self.reorderMatrixLikeDisplay(food)
+        if color is 'red':
+            self.invertMatrixForRed(food)
         main_index = self.index
         teammate_index = self.teammateIndex()
 
@@ -152,7 +156,7 @@ class AgentAlphaBeta(CaptureAgent):
         #state.printState()
         #children = state.next_states(self.index)
 
-        depth = 4
+        depth = DEPTH
         alpha = - np.inf
         beta = np.inf
         player = self.index

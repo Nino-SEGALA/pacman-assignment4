@@ -6,6 +6,16 @@ import state as stt
 
 
 # PARAMETERS
+MAX_SCORE = 20
+MAX_COLLECTED = 20
+DISTANCE_PENALIZED_OUR_AGENTS = 6
+MAX_DISTANCE_FOOD = 1  # h * w or w
+
+COEF_SCORE = 10
+COEF_COLL1 = 5
+COEF_COLL2 = 3
+COEF_DISTANCE_FOOD = 1
+COEF_DISTANCE_OUR_AGENTS = 1
 
 
 
@@ -41,13 +51,34 @@ def main():
     return choosenAction.value
 
 
-# bfs to find the boxes at the right distance of the agent
-def distance_closest_food(wall, food, pos):
-    """print()
-    print("distance_closest_food")
-    print(wall)
-    print(food)"""
+# get food position
+def get_food_positions(food):
     res = []
+    h, w = food.shape
+    for i in range(h):
+        for j in range(w):
+            if food[i][j] == 1:
+                res.append((i, j))
+    return res
+
+
+def manhattan_distance(p1, p2):
+    return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+
+
+# get distance between our two agents | [-1, 0]
+def get_distance_between_our_agents(state):
+    pos1 = state.mainPosition
+    pos2 = state.teammatePosition
+    if manhattan_distance(pos1, pos2) <= DISTANCE_PENALIZED_OUR_AGENTS:
+        dist = distance_closest_bfs(state.wall, [pos2], pos1)  # bfs distance
+        return min(0, (dist - DISTANCE_PENALIZED_OUR_AGENTS) / DISTANCE_PENALIZED_OUR_AGENTS)
+    return 0
+
+
+# bfs to find the boxes at the right distance of the agent
+def distance_closest_bfs(wall, goals, pos):
+    """Calculate with bfs the minimum distance between pos to reach a goal"""
     # preparation
     board = np.full(wall.shape, -1)
     board[pos[0]][pos[1]] = 0  # agent's position
@@ -57,8 +88,7 @@ def distance_closest_food(wall, food, pos):
     while lookAt:
         (u, v) = lookAt.pop(0)  # remove first element of lookAt
         distance = board[u][v]
-        #print(lookAt, (u, v), distance)
-        if food[u][v] == 1:  # opponent's food
+        if (u, v) in goals:  # opponent's food
             return distance
 
         for dir in [(1, 0), (0, 1), (-1, 0), (0, -1)]:
@@ -82,12 +112,20 @@ def convert_move(move):
 
 # return the value of a state for a player
 def heuristic(state):
-    score = state.score
-    collected = (state.mainCollected + state.teammateCollected) - state.opponentCollected
-    distance_coins = distance_closest_food(state.wall, state.food, state.mainPosition)
+    h, w = state.wall.shape
+    MAX_DISTANCE_FOOD = w
+    score = COEF_SCORE * (state.score / MAX_SCORE)
+    coll1 = COEF_COLL1 * (state.mainCollected / MAX_COLLECTED + state.teammateCollected / MAX_COLLECTED)
+    coll2 = COEF_COLL2 * (state.opponentCollected / MAX_COLLECTED)
+    collected = coll1 - coll2
+    foodPosition = get_food_positions(state.food)
+    real_distance_food = distance_closest_bfs(state.wall, foodPosition, state.mainPosition)
+    distance_food = COEF_DISTANCE_FOOD * (real_distance_food / MAX_DISTANCE_FOOD)
+    distance_our_agents = COEF_DISTANCE_OUR_AGENTS * get_distance_between_our_agents(state)
     # distance home
-    print("heuristic :", score, collected, distance_coins)
-    res = score + collected - distance_coins
+    res = score + collected - distance_food + distance_our_agents
+    print("h :", coll1, coll2)
+    print("heuristic :", state.mainPosition, " |", score, collected, distance_food, distance_our_agents, " ||", res)
     return res
 
 
@@ -112,6 +150,8 @@ def alphabeta(state, depth, alpha, beta, player, getBestMove=False):
             alpha = max(alpha, v)
             if beta <= alpha:  # beta pruning
                 break
+
+        print("aB | MAX", v)
 
         if getBestMove:
             return convert_move(bestMove)
