@@ -32,11 +32,16 @@ import tensorflow as tf
 from state import State
 
 tfk = tf.keras
-
 ACTIONS = {'North':0,'South':1,'East':2,'West':3,'Stop':4}
 ACTIONS_VALUE = {0:'North',1:'South',2:'East',3:'West',4:'Stop'}
 
-agent_red = a.Agent(n_actions=5, gamma=0.99, epsilon=0.1, alpha=0.5, state_dim = (18,34,2), batch_size=64,
+class Counter:
+  def __init__(self):
+    self.counter = 0
+
+counter = Counter()
+
+agent_red = a.Agent(n_actions=5, gamma=0.99, epsilon=1, alpha=1e-3, state_dim = (18,34,7), batch_size=32,
             buffer_size=(30000,), eps_final=0.01, name='Network_red')
 try:
   agent_red.NN = tfk.models.load_model('models/network_red')
@@ -45,7 +50,7 @@ try:
 except:
   print("couldn't load red")
 
-agent_blue = a.Agent(n_actions=5, gamma=0.99, epsilon=0.1, alpha=0.5, state_dim = (18,34,2), batch_size=64,
+agent_blue = a.Agent(n_actions=5, gamma=0.99, epsilon=1, alpha=1e-3, state_dim = (18,34,7), batch_size=32,
             buffer_size=(30000,), eps_final=0.01,name='Network_blue')
 try:
   agent_blue.NN = tfk.models.load_model('models/network_blue')
@@ -53,6 +58,7 @@ try:
   print('loaded old model blue')
 except:
   print("couldn't load blue")
+SCORES = [[] for _ in range(4)]
 #################
 # Team creation #
 #################
@@ -89,47 +95,91 @@ class ReflexCaptureAgent(CaptureAgent):
     CaptureAgent.registerInitialState(self, gameState)
     self.red = gameState.getRedTeamIndices()
     self.blue = gameState.getBlueTeamIndices()
+    self.counter = counter
     self.my_team = 'blue' if self.index in self.blue else 'red'
+
     if self.my_team == 'blue':
+      self.team = self.blue
+      self.opp = self.red
       self.agent = agent_blue
     else:
+      self.team = self.red
+      self.opp = self.blue
       self.agent = agent_red
+
+
+    self.hist = SCORES[self.index]
     self.saved = False
     self.states = State(self.index)
     self.ourFoodLastStep = self.getFood(gameState)
     self.width = self.ourFoodLastStep.width  # width of the board (32)
     self.height = self.ourFoodLastStep.height
+    self.ourFoodLastStep = self.getOurFood(gameState)
+    self.old_gameState = gameState
+    self.old_state = self.states.dataInput(gameState, self)
+    self.actions_ohc = np.zeros(5)
 
   def chooseAction(self, gameState):
-    """
-    Picks among the actions with the highest Q(s,a).
-    """
+    
     c_state = self.states.dataInput(gameState, self)
+
+    reward = self.get_reward(self.old_gameState, gameState)
+    self.agent.add_to_buffer(self.old_state, self.actions_ohc, reward, c_state)
+    self.agent.update_step()
+    self.agent.learn()
+    self.agent.update_network()
+    
     if gameState.data.timeleft <= 2 and not self.saved:
-      print('almost over')
       self.agent.NN.save(f'models/network_{self.my_team}')
       self.agent.target_NN.save(f'models/target_{self.my_team}')
+      self.hist.append(gameState.getAgentState(self.index).numReturned)
+      np.save(f"models/hist_{self.index}",self.hist,allow_pickle=True)
+      self.agent.update_epsilon()
+      print('saving ... ')
+      print(self.agent.epsilon)
       self.saved = True
-
+    
+    
     actions = gameState.getLegalActions(self.index)
     possible_actions = [ACTIONS[key] for key in actions]
     
     # You can profile your evaluation time by uncommenting these lines
     # start = time.time()
-    action = self.agent.get_action(state, possible_actions)
+    action = self.agent.get_action(c_state, possible_actions)
+
     best_action = ACTIONS_VALUE[action]
     # print('eval time for agent %d: %.4f' % (self.index, time.time() - start))
     
-    action_ohc = np.zeros(5)
-    action_ohc[action] = 1.0
-    reward = np.random.rand()
-    s1,s2,s3,s4 = state.shape
-    next_state = np.random.rand(s1,s2,s3,s4)
-    self.agent.add_to_buffer(state, action_ohc, reward, next_state)
-    self.agent.update_step()
-    self.agent.learn()
+    self.action_ohc = np.zeros(5)
+    self.action_ohc[action] = 1.0
+    self.old_state = c_state
+    self.old_gameState = gameState
 
     return best_action
+
+  def get_reward(self, old_gameState, gameState):
+    score_reward = gameState.getAgentState(self.index).numReturned - old_gameState.getAgentState(self.index).numReturned
+    food_reward = (gameState.getAgentState(self.index).numCarrying - old_gameState.getAgentState(self.index).numCarrying)*0.1
+    opp_score = 0
+    opp_food = 0
+    for ind in self.opp:
+      opp_score -= gameState.getAgentState(ind).numReturned - old_gameState.getAgentState(ind).numReturned
+      opp_food -= (gameState.getAgentState(ind).numCarrying - old_gameState.getAgentState(ind).numCarrying)*0.1
+
+    ## to make sure the agent moves from the origin
+    pos1 = gameState.getAgentPosition(self.index)
+    dist1 = self.getMazeDistance(self.start, pos1)
+    dist_reward = 0
+    if dist1 < 11:
+      pos2 = old_gameState.getAgentPosition(self.index)
+      dist2 = self.getMazeDistance(self.start, pos2)
+      if dist2 > dist1:
+        dist_reward = -0.001
+
+    final_reward = score_reward + food_reward + opp_score + opp_food + dist_reward
+    return final_reward
+
+
 
   def getSuccessor(self, gameState, action):
     """
@@ -178,6 +228,7 @@ class ReflexCaptureAgent(CaptureAgent):
                               for j in range(self.height)])
               self.states.reorderMatrixLikeDisplay(gameState,food)
           return food
+
 
   def setNewFoodLastStep(self, gameState):
       self.ourFoodLastStep = self.getOurFood(gameState)

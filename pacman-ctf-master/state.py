@@ -62,7 +62,6 @@ class State(CaptureAgent):
 
     # bfs to find the boxes at the right distance of the agent
     def bfsOnBoard(self, gameState, color, agent_pos, distance):
-        # print("just to see : ", color, agent_pos, distance)
         res = []
         # preparation
         width = gameState.getWalls().width  # width of the board (32)
@@ -78,7 +77,6 @@ class State(CaptureAgent):
         if color is 'red':
             self.invertMatrixForRed(gameState,board)
             agent_pos = height - agent_pos[0] - 1, width - agent_pos[1] - 1
-        # print("agent_pos : ", agent_pos)
         board[agent_pos[0]][agent_pos[1]] = 0  # agent's position
 
         # BFS
@@ -93,8 +91,6 @@ class State(CaptureAgent):
                 for (i, j) in neighbours:
                     board[i][j] = depth + 1
                     lookAt.append((i, j))
-
-        # print("bfs : ", board, res)
 
         return res
 
@@ -126,9 +122,9 @@ class State(CaptureAgent):
         """
         # needs the functions: ourColor, teamMateAndOpponentState, invert, reorderMatrixLikeDisplay, invertMatrixForRed
 
-        print()
+    
         color = self.ourColor(gameState)
-        print(color, self.index)
+    
         agent_state = gameState.getAgentState(self.index)
         team_mate_state, opponent_state = self.teamMateAndOpponentState(gameState, color)
         width = gameState.getWalls().width  # width of the board (32)
@@ -140,9 +136,7 @@ class State(CaptureAgent):
         self.reorderMatrixLikeDisplay(gameState,walls)
         if color is 'red':
             self.invertMatrixForRed(gameState,walls)
-        print("walls")
-        print(walls)
-
+   
         # 2
         food_red = np.array([[int(gameState.getRedFood()[i][j]) for i in range(width)]
                                 for j in range(height)])
@@ -150,7 +144,6 @@ class State(CaptureAgent):
                                 for j in range(height)])
 
         # 3
-        print(gameState.getRedCapsules())
         power_capsule_red = np.zeros((height, width), dtype=int)
         for (i, j) in gameState.getRedCapsules():
             power_capsule_red[j][i] = 1  # invert w and h
@@ -169,10 +162,7 @@ class State(CaptureAgent):
         if color is 'red':
             self.invertMatrixForRed(gameState,food)
             self.invertMatrixForRed(gameState,power_capsule)
-        # print("food")
-        # print(food)
-        # print("power_capsule")
-        # print(power_capsule)
+
 
         # 4
         pacman_friend = np.zeros((height, width), dtype=int)
@@ -183,8 +173,7 @@ class State(CaptureAgent):
         self.reorderMatrixLikeDisplay(gameState,pacman_friend)
         if color is 'red':
             self.invertMatrixForRed(gameState,pacman_friend)
-        #print("pacman_friend")
-        #print(pacman_friend)
+
 
         # 5
         scared_ghost_friend = np.zeros((height, width), dtype=int)
@@ -195,8 +184,6 @@ class State(CaptureAgent):
         if color is 'red':
             self.invertMatrixForRed(gameState,scared_ghost_friend)
         self.reorderMatrixLikeDisplay(gameState,scared_ghost_friend)
-        # print("scared_ghost_friend")
-        # print(scared_ghost_friend)
 
         # 6
         pacman_opponent = np.zeros((height, width), dtype=int)
@@ -225,19 +212,13 @@ class State(CaptureAgent):
         distToOpTeamMate = [distToOp[0] + distToTeamMate, distToOp[1] - distToTeamMate]
         agent_pos = gameState.invert(gameState.getAgentPosition(agent.index))
         team_mate_pos = gameState.invert(team_mate_state.getPosition())
-        # print("CASE : ", agent_pos, team_mate_pos, distToTeamMate, distToOp, distToOpTeamMate)
-        # print("case 1")
         boxes1 = gameState.bfsOnBoard(color, agent_pos, distToOp[0])
         boxes2 = gameState.bfsOnBoard(color, team_mate_pos, distToOpTeamMate[0])
-        # print("common position = ", gameState.findCommonPosition(boxes1, boxes2))
-        # print("case 2")
         boxes3 = gameState.bfsOnBoard(color, agent_pos, distToOp[1])
         boxes4 = gameState.bfsOnBoard(color, team_mate_pos, distToOpTeamMate[1])'''
-        # print("common position = ", gameState.findCommonPosition(boxes3, boxes4))
         # SIMPLE TEST CASE
 
-        print("pacman_opponent")
-        print(pacman_opponent)
+
 
         # 7
         scared_ghost_opponent = np.zeros((height, width), dtype=int)
@@ -248,11 +229,11 @@ class State(CaptureAgent):
         self.reorderMatrixLikeDisplay(gameState,scared_ghost_opponent)
         if color is 'red':
             self.invertMatrixForRed(gameState,scared_ghost_opponent)
-        # print("scared_ghost_opponent")
-        # print(scared_ghost_opponent)
 
         matrices = [walls, food, power_capsule, pacman_friend, scared_ghost_friend, pacman_opponent, scared_ghost_opponent]
         output = np.stack(matrices,axis=-1)
+        output = np.expand_dims(output, axis=0)
+        output = output.astype(dtype=np.float32)
         return output
 
 

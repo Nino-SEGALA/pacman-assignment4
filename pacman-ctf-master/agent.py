@@ -50,6 +50,7 @@ class Agent():
         self.action_buffer_size = buffer_size + (n_actions,)
         self.state_buffer_size = buffer_size + state_dim
         self.name = name
+        self.update_counter = 0
 
         #initialize buffer
         self.state_buffer = np.zeros(shape=self.state_buffer_size, dtype=np.float32)
@@ -85,6 +86,17 @@ class Agent():
 
         return action
 
+    def get_action_target(self, state, possible_actions):
+        '''gets the action if we are not training'''
+        if np.random.random() < 0.5:
+            action = np.random.choice(possible_actions)
+        else:
+            actions = self.target_NN(state)
+            action = tfm.argmax(actions,axis=1).numpy()[0]
+            if action not in possible_actions:
+                action = np.random.choice(possible_actions)
+        return action
+
     def learn(self):
         '''When we have enough samples in the buffer, we will learn every fith step'''
         if self.step != 0 or self.buffer_cnt < self.batch_size:
@@ -101,12 +113,11 @@ class Agent():
     def update_step(self):
         '''keep track of steps when there is need to update'''
         self.step +=1
-        self.step = self.step % 10
+        self.step = self.step % 20
     
     def train_network(self,batch):
         '''Train the network given a random batch from the buffer and using a target Network'''
         #get data
-        print(f'{self.name} is training')
         rewards = self.reward_buffer[batch]
         states = self.state_buffer[batch]
         actions = np.argmax(self.action_buffer[batch],axis=1)
@@ -121,22 +132,25 @@ class Agent():
         current_val[idx,actions] = targets
 
         #update Network
-        self.NN.fit(states,current_val)
+        self.NN.fit(states,current_val,verbose=False)
 
     def update_epsilon(self):
         '''After every episode decrease epsilon by 5%, (e.g explore less and less)'''
         if self.epsilon <= self.eps_final:
             self.epsilon = self.eps_final
         else:
-            self.epsilon = self.epsilon*0.995
+            self.epsilon = self.epsilon*0.9
 
 
     def update_network(self):
         '''update the target network'''
-        self.target_NN = copy.deepcopy(self.NN)
+        #self.target_NN = copy.deepcopy(self.NN)
         "this actually might work better"
-        # for a, b in zip(target_NN.variables, NN.variables):
-        #     a.assign(b) 
+        self.update_counter += 1
+        if self.update_counter == 250:
+            for a, b in zip(self.target_NN.variables, self.NN.variables):
+                a.assign(b) 
+            self.update_counter = 0
 
         
         
