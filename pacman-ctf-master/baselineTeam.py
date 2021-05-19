@@ -41,8 +41,8 @@ class Counter:
 
 counter = Counter()
 
-agent_red = a.Agent(n_actions=5, gamma=0.99, epsilon=1.0, alpha=1e-3, state_dim = (18,34,7), batch_size=32,
-            buffer_size=(30000,), eps_final=0.01, name='Network_red')
+agent_red = a.Agent(n_actions=5, gamma=0.99, epsilon=0.1, alpha=1e-3, state_dim = (18,34,7), batch_size=32,
+            buffer_size=(30000,), eps_final=0.1, name='Network_red')
 try:
   agent_red.NN = tfk.models.load_model('models/network_red')
   agent_red.target_NN = tfk.models.load_model('models/target_red')
@@ -50,8 +50,8 @@ try:
 except:
   print("couldn't load red")
 
-agent_blue = a.Agent(n_actions=5, gamma=0.99, epsilon=1.0, alpha=1e-3, state_dim = (18,34,7), batch_size=32,
-            buffer_size=(30000,), eps_final=0.01,name='Network_blue')
+agent_blue = a.Agent(n_actions=5, gamma=0.99, epsilon=0.1, alpha=1e-3, state_dim = (18,34,7), batch_size=32,
+            buffer_size=(30000,), eps_final=0.1,name='Network_blue')
 try:
   agent_blue.NN = tfk.models.load_model('models/network_blue')
   agent_blue.target_NN = tfk.models.load_model('models/target_blue')
@@ -124,7 +124,6 @@ class ReflexCaptureAgent(CaptureAgent):
     c_state = self.states.dataInput(gameState, self)
 
     reward = self.get_reward(self.old_gameState, gameState)
-    print(f'I got reward {reward} \n')
     self.agent.add_to_buffer(self.old_state, self.actions_ohc, reward, c_state)
     self.agent.update_step()
     self.agent.learn()
@@ -133,12 +132,12 @@ class ReflexCaptureAgent(CaptureAgent):
     if gameState.data.timeleft <= 2 and not self.saved:
       self.agent.NN.save(f'models/network_{self.my_team}')
       self.agent.target_NN.save(f'models/target_{self.my_team}')
-      self.hist.append(gameState.getAgentState(self.index).numReturned)
-      np.save(f"models/hist_{self.index}",self.hist,allow_pickle=True)
-      self.agent.update_epsilon()
-      self.agent.update_reward_annealing()
+      #self.hist.append(gameState.getAgentState(self.index).numReturned)
+      #np.save(f"models/hist_{self.index}",self.hist,allow_pickle=True)
+      #self.agent.update_epsilon()
+      #self.agent.update_reward_annealing()
       print('saving ... ')
-      print(self.agent.epsilon)
+      #print(self.agent.epsilon)
       self.saved = True
     
     
@@ -147,19 +146,41 @@ class ReflexCaptureAgent(CaptureAgent):
     
     # You can profile your evaluation time by uncommenting these lines
     # start = time.time()
-    action = self.agent.get_action(c_state, possible_actions, self.index)
-    self.action_ohc = np.zeros(5)
-    self.action_ohc[action] = 1.0
+    # action = self.get_NN_action(c_state, possible_actions)
+    action = self.get_base_action(gameState, actions)
 
-    if action not in possible_actions:
-      action = np.random.choice(possible_actions)
-    best_action = ACTIONS_VALUE[action]
+
+    action_num = ACTIONS[action]
     # print('eval time for agent %d: %.4f' % (self.index, time.time() - start))
 
+    self.actions_ohc = np.zeros(5)
+    self.actions_ohc[action_num] = 1.0
     self.old_state = c_state
     self.old_gameState = gameState
 
-    return best_action
+    return action
+
+
+  def get_base_action(self, gameState, actions, epsilon=0.2):
+    if np.random.rand() < epsilon:
+      action = np.random.choice(actions)
+    else:
+      values = [self.evaluate(gameState, a) for a in actions]
+      maxValue = max(values)
+      bestActions = [a for a, v in zip(actions, values) if v == maxValue]
+      action = bestActions[0]
+    return action
+
+
+  def get_NN_action(self, c_state, possible_actions):
+    action = self.agent.get_action(c_state, possible_actions, self.index)
+    self.actions_ohc = np.zeros(5)
+    self.actions_ohc[action] = 1.0
+
+    if action not in possible_actions:
+      action = np.random.choice(possible_actions)
+    action = ACTIONS_VALUE[action]
+    return action
 
   def get_reward(self, old_gameState, gameState):
     score_reward = gameState.getAgentState(self.index).numReturned - old_gameState.getAgentState(self.index).numReturned
@@ -171,15 +192,15 @@ class ReflexCaptureAgent(CaptureAgent):
       opp_food -= (gameState.getAgentState(ind).numCarrying - old_gameState.getAgentState(ind).numCarrying)*0.1
 
     ## to make sure the agent moves from the origin
-    dist_reward = 0
-    pos1 = gameState.getAgentPosition(self.index)
-    dist1 = self.getMazeDistance(self.start, pos1)
-    pos2 = old_gameState.getAgentPosition(self.index)
-    dist2 = self.getMazeDistance(self.start, pos2)
-    if dist2 >= dist1:
-      dist_reward = -0.001 * self.agent.reward_annealing
+    # dist_reward = 0
+    # pos1 = gameState.getAgentPosition(self.index)
+    # dist1 = self.getMazeDistance(self.start, pos1)
+    # pos2 = old_gameState.getAgentPosition(self.index)
+    # dist2 = self.getMazeDistance(self.start, pos2)
+    # if dist2 >= dist1:
+    #   dist_reward = -0.0001 
 
-    final_reward = score_reward + food_reward + opp_score + opp_food + dist_reward
+    final_reward = score_reward + food_reward + opp_score + opp_food 
     return final_reward
 
 

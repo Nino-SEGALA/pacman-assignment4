@@ -115,7 +115,7 @@ class Agent():
         self.step = self.step % 20
 
     def update_reward_annealing(self):
-        self.reward_annealing *= 0.75
+        self.reward_annealing *= 0.9
     
     def train_network(self,batch):
         '''Train the network given a random batch from the buffer and using a target Network'''
@@ -134,7 +134,7 @@ class Agent():
         current_val[idx,actions] = targets
 
         #update Network
-        self.NN.fit(states,current_val)
+        self.NN.fit(states,current_val, verbose=False)
 
     def update_epsilon(self):
         '''After every episode decrease epsilon by 5%, (e.g explore less and less)'''
