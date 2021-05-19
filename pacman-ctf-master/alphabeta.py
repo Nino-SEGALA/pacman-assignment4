@@ -13,14 +13,14 @@ NUMBER_FOOD_COLLECT = 5
 MAX_DISTANCE_FOOD = 1  # h * w or w
 MAX_DISTANCE_HOMEBASE = 1  # h * w/2 or w/2
 
-COEF_SCORE = 30
-COEF_COLL = 20
+COEF_SCORE = 40
+COEF_COLL = 30
 COEF_COLL_OPP = 5
 COEF_DISTANCE_FOOD1 = 1
 COEF_DISTANCE_FOOD2 = 0.5
 COEF_DISTANCE_OUR_AGENTS = 0.1
-COEF_DISTANCE_HOMEBASE1 = 2
-COEF_DISTANCE_HOMEBASE2 = 1
+COEF_DISTANCE_HOMEBASE1 = 1
+COEF_DISTANCE_HOMEBASE2 = 0.5
 
 
 # Your foo function
@@ -143,8 +143,19 @@ def distance_closest_bfs(wall, goals, pos):
     return 1000  # no food found
 
 
-def convert_move(move):
+# invert the output for red
+def invertOutput(move):
+    cor = [((1, 0), (-1, 0)), ((0, 1), (0, -1)), ((-1, 0), (1, 0)), ((0, -1), (0, 1)), ((0, 0), (0, 0))]
+    for m, m_cor in cor:
+        if move == m:
+            return m_cor
+
+
+def convert_move(color, move):
     conv = [((1, 0), "South"), ((0, 1), "East"), ((-1, 0), "North"), ((0, -1), "West"), ((0, 0), "Stop")]
+    if color is 'red':
+        move = invertOutput(move)
+
     for (direction, command) in conv:
         if move == direction:
             return command
@@ -176,9 +187,10 @@ def heuristic(state):
 
     res = score + collected - distance_food + distance_our_agents - distance_homebase
 
-    print("heuristic : pos=", state.mainPosition, "|| sc=", score, "col=", collected, "df1=", distance_food1, "df2=",
-          distance_food2, "da=", distance_our_agents, "dh1=", distance_homebase1, "dh2=", distance_homebase2, " ||",
-          "res=", res)
+    if state.color is 'blue':
+        print("heuristic : pos=", state.mainPosition, "|| sc=", score, "col=", collected, "df1=", distance_food1,
+              "df2=", distance_food2, "da=", distance_our_agents, "dh1=", distance_homebase1, "dh2=",
+              distance_homebase2, " ||", "res=", res)
     return res
 
 
@@ -207,7 +219,7 @@ def alphabeta(state, depth, alpha, beta, player, getBestMove=False):
         print("aB | MAX", player, v)
 
         if getBestMove:
-            return convert_move(bestMove)
+            return convert_move(state.color, bestMove)
 
     else:  # team MIN
         #print("aB | MIN")

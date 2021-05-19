@@ -80,6 +80,16 @@ class AgentAlphaBeta(CaptureAgent):
                 first_element = mat[i][j]
                 mat[i][j], mat[height - i - 1][j] = mat[height - i - 1][j], first_element  # inversion
 
+    # invert right/left and top/down to change red and blue players
+    def invertMatrixForRed(self, mat):
+        height, width = mat.shape
+        for i in range(height):
+            for j in range(width // 2):
+                first_element = mat[i][j]
+                # inversion
+                mat[i][j], mat[height - i - 1][width - j - 1] = mat[height - i - 1][width - j - 1], first_element
+
+
     def createStateFromGameState(self, gameState):
         """(self, color, score, wall, food, main_index, teammate_index, main_position, teammate_position,
                  main_collected, teammate_collected, team_scared, opponent_scared, opponent_index1,
@@ -161,7 +171,8 @@ class AgentAlphaBeta(CaptureAgent):
         beta = np.inf
         player = self.index
         bestMove = alphabeta.alphabeta(state, depth, alpha, beta, player, getBestMove=True)
-        print("chooseAction : agent =", player, "position =", state.mainPosition, "bestMove = ", bestMove)
+        if state.color is 'blue':
+            print("chooseAction : agent =", player, "position =", state.mainPosition, "bestMove = ", bestMove)
 
         #print("alpha beta agent : ", bestMove)
         return bestMove
