@@ -41,7 +41,7 @@ class Counter:
 
 counter = Counter()
 
-agent_red = a.Agent(n_actions=5, gamma=0.99, epsilon=1, alpha=1e-3, state_dim = (18,34,7), batch_size=32,
+agent_red = a.Agent(n_actions=5, gamma=0.99, epsilon=1.0, alpha=1e-3, state_dim = (18,34,7), batch_size=32,
             buffer_size=(30000,), eps_final=0.01, name='Network_red')
 try:
   agent_red.NN = tfk.models.load_model('models/network_red')
@@ -50,7 +50,7 @@ try:
 except:
   print("couldn't load red")
 
-agent_blue = a.Agent(n_actions=5, gamma=0.99, epsilon=1, alpha=1e-3, state_dim = (18,34,7), batch_size=32,
+agent_blue = a.Agent(n_actions=5, gamma=0.99, epsilon=1.0, alpha=1e-3, state_dim = (18,34,7), batch_size=32,
             buffer_size=(30000,), eps_final=0.01,name='Network_blue')
 try:
   agent_blue.NN = tfk.models.load_model('models/network_blue')
@@ -135,6 +135,7 @@ class ReflexCaptureAgent(CaptureAgent):
       self.hist.append(gameState.getAgentState(self.index).numReturned)
       np.save(f"models/hist_{self.index}",self.hist,allow_pickle=True)
       self.agent.update_epsilon()
+      self.agent.update_reward_annealing()
       print('saving ... ')
       print(self.agent.epsilon)
       self.saved = True
@@ -167,16 +168,16 @@ class ReflexCaptureAgent(CaptureAgent):
       opp_food -= (gameState.getAgentState(ind).numCarrying - old_gameState.getAgentState(ind).numCarrying)*0.1
 
     ## to make sure the agent moves from the origin
+    dist_reward = 0
     pos1 = gameState.getAgentPosition(self.index)
     dist1 = self.getMazeDistance(self.start, pos1)
-    dist_reward = 0
-    if dist1 < 11:
-      pos2 = old_gameState.getAgentPosition(self.index)
-      dist2 = self.getMazeDistance(self.start, pos2)
-      if dist2 > dist1:
-        dist_reward = -0.001
+    pos2 = old_gameState.getAgentPosition(self.index)
+    dist2 = self.getMazeDistance(self.start, pos2)
+    if dist2 >= dist1:
+      dist_reward = -0.001 * self.agent.reward_annealing
 
     final_reward = score_reward + food_reward + opp_score + opp_food + dist_reward
+    print('reward = ',final_reward)
     return final_reward
 
 

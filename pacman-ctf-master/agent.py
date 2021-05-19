@@ -51,6 +51,8 @@ class Agent():
         self.state_buffer_size = buffer_size + state_dim
         self.name = name
         self.update_counter = 0
+        self.reward_annealing = 1
+
 
         #initialize buffer
         self.state_buffer = np.zeros(shape=self.state_buffer_size, dtype=np.float32)
@@ -114,6 +116,9 @@ class Agent():
         '''keep track of steps when there is need to update'''
         self.step +=1
         self.step = self.step % 20
+
+    def update_reward_annealing(self):
+        self.reward_annealing *= 0.75
     
     def train_network(self,batch):
         '''Train the network given a random batch from the buffer and using a target Network'''
@@ -132,7 +137,7 @@ class Agent():
         current_val[idx,actions] = targets
 
         #update Network
-        self.NN.fit(states,current_val,verbose=False)
+        self.NN.fit(states,current_val)
 
     def update_epsilon(self):
         '''After every episode decrease epsilon by 5%, (e.g explore less and less)'''
