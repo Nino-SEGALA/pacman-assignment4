@@ -75,7 +75,7 @@ class Agent():
         self.action_buffer[ind] = action
         self.buffer_cnt += 1
 
-    def get_action(self, state, possible_actions):
+    def get_action(self, state, possible_actions, index):
         '''gets the action according to an epsilon greedy policy given the NN'''
         if np.random.random() < self.epsilon:
             action = np.random.choice(possible_actions)
@@ -83,9 +83,6 @@ class Agent():
         else:
             actions = self.NN(state)
             action = tfm.argmax(actions,axis=1).numpy()[0]
-            if action not in possible_actions:
-                action = np.random.choice(possible_actions)
-
         return action
 
     def get_action_target(self, state, possible_actions):

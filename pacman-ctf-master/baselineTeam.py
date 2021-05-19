@@ -124,6 +124,7 @@ class ReflexCaptureAgent(CaptureAgent):
     c_state = self.states.dataInput(gameState, self)
 
     reward = self.get_reward(self.old_gameState, gameState)
+    print(f'I got reward {reward} \n')
     self.agent.add_to_buffer(self.old_state, self.actions_ohc, reward, c_state)
     self.agent.update_step()
     self.agent.learn()
@@ -146,13 +147,15 @@ class ReflexCaptureAgent(CaptureAgent):
     
     # You can profile your evaluation time by uncommenting these lines
     # start = time.time()
-    action = self.agent.get_action(c_state, possible_actions)
-
-    best_action = ACTIONS_VALUE[action]
-    # print('eval time for agent %d: %.4f' % (self.index, time.time() - start))
-    
+    action = self.agent.get_action(c_state, possible_actions, self.index)
     self.action_ohc = np.zeros(5)
     self.action_ohc[action] = 1.0
+
+    if action not in possible_actions:
+      action = np.random.choice(possible_actions)
+    best_action = ACTIONS_VALUE[action]
+    # print('eval time for agent %d: %.4f' % (self.index, time.time() - start))
+
     self.old_state = c_state
     self.old_gameState = gameState
 
@@ -177,7 +180,6 @@ class ReflexCaptureAgent(CaptureAgent):
       dist_reward = -0.001 * self.agent.reward_annealing
 
     final_reward = score_reward + food_reward + opp_score + opp_food + dist_reward
-    print('reward = ',final_reward)
     return final_reward
 
 
