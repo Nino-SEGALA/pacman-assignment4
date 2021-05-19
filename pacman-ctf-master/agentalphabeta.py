@@ -5,7 +5,7 @@ import state
 import alphabeta
 
 TIME_LIMIT = 0.95
-DEPTH = 2
+DEPTH = 4
 
 #################
 # Team creation #
@@ -160,7 +160,7 @@ class AgentAlphaBeta(CaptureAgent):
         print()
         print("- chooseAction -")
 
-        actions = gameState.getLegalActions(self.index)
+        #actions = gameState.getLegalActions(self.index)
 
         state = self.createStateFromGameState(gameState)
         #state.printState()
@@ -171,8 +171,11 @@ class AgentAlphaBeta(CaptureAgent):
         beta = np.inf
         player = self.index
         bestMove = alphabeta.alphabeta(state, depth, alpha, beta, player, getBestMove=True)
+
         if state.color is 'blue':
             print("chooseAction : agent =", player, "position =", state.mainPosition, "bestMove = ", bestMove)
+        #else:  # red
+            #player_main_pos = self.invert(gameState.getAgentPosition(self.index))
 
         #print("alpha beta agent : ", bestMove)
         return bestMove

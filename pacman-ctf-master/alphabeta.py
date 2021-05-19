@@ -12,6 +12,7 @@ DISTANCE_PENALIZED_OUR_AGENTS = 6
 NUMBER_FOOD_COLLECT = 5
 MAX_DISTANCE_FOOD = 1  # h * w or w
 MAX_DISTANCE_HOMEBASE = 1  # h * w/2 or w/2
+MAX_DISTANCE_OPPONENT = 5  # position unknown above
 
 COEF_SCORE = 40
 COEF_COLL = 30
@@ -21,6 +22,7 @@ COEF_DISTANCE_FOOD2 = 0.5
 COEF_DISTANCE_OUR_AGENTS = 0.1
 COEF_DISTANCE_HOMEBASE1 = 1
 COEF_DISTANCE_HOMEBASE2 = 0.5
+COEF_DISTANCE_OPPONENT = 1
 
 
 # Your foo function
@@ -116,6 +118,42 @@ def calculate_homebase_penalty(state, index, dist_food):
     return 0  # no penalty if food closer
 
 
+# calculate distance to the enemy (<0 when enemy can eat us)
+def distance_opponent(state, pos):
+    opponent = []
+    side_limit = state.wall.shape[1] // 2  # w / 2
+    min_distance = np.inf
+    if state.opponentPosition1:
+        opponent.append(state.opponentPosition1)
+    if state.opponentPosition2:
+        opponent.append(state.opponentPosition2)
+
+    if not opponent:  # opponents' position unknown
+        return 0
+
+    for opp_pos in opponent:
+        dist = distance_closest_bfs(state.wall, [opp_pos], pos)  # distance agent - opponent
+
+        if opp_pos[1] < side_limit:  # opponent is ghost
+            if not state.opponentScared:  # opponent not scared
+                dist = - dist  # negative distance
+        if opp_pos[1] > side_limit:  # opponent is pacman
+            if state.teamScared:  # we are scared
+                dist = - dist  # negative distance
+
+        if abs(dist) < abs(min_distance):
+            min_distance = dist
+
+    dist = dist / MAX_DISTANCE_OPPONENT
+    if dist < 0:
+        dist = -1 - dist
+    else:
+        dist = 1 - dist
+
+    print("distance_opponent :", dist)
+    return dist
+
+
 # bfs to find the boxes at the right distance of the agent
 def distance_closest_bfs(wall, goals, pos):
     """Calculate with bfs the minimum distance between pos to reach a goal"""
@@ -161,7 +199,6 @@ def convert_move(color, move):
             return command
 
 
-# return the value of a state for a player
 def heuristic(state):
     h, w = state.wall.shape
     MAX_DISTANCE_FOOD = w
@@ -185,12 +222,14 @@ def heuristic(state):
     distance_homebase2 = COEF_DISTANCE_HOMEBASE2 * calculate_homebase_penalty(state, state.teammateIndex, distance_food2)
     distance_homebase = distance_homebase1 + distance_homebase2
 
-    res = score + collected - distance_food + distance_our_agents - distance_homebase
+    distance_enemy = COEF_DISTANCE_OPPONENT * distance_opponent(state, state.mainPosition)
+
+    res = score + collected - distance_food + distance_our_agents - distance_homebase + distance_enemy
 
     if state.color is 'blue':
         print("heuristic : pos=", state.mainPosition, "|| sc=", score, "col=", collected, "df1=", distance_food1,
               "df2=", distance_food2, "da=", distance_our_agents, "dh1=", distance_homebase1, "dh2=",
-              distance_homebase2, " ||", "res=", res)
+              distance_homebase2, "do=", distance_enemy, "||", "res=", res)
     return res
 
 
