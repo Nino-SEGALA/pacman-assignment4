@@ -129,7 +129,7 @@ class ReflexCaptureAgent(CaptureAgent):
     self.agent.learn()
     self.agent.update_network()
     
-    if gameState.data.timeleft <= 2 and not self.saved:
+    if gameState.data.timeleft <= 3:
       self.agent.NN.save(f'models/network_{self.my_team}')
       self.agent.target_NN.save(f'models/target_{self.my_team}')
       #self.hist.append(gameState.getAgentState(self.index).numReturned)
@@ -138,7 +138,6 @@ class ReflexCaptureAgent(CaptureAgent):
       #self.agent.update_reward_annealing()
       print('saving ... ')
       #print(self.agent.epsilon)
-      self.saved = True
     
     
     actions = gameState.getLegalActions(self.index)
@@ -169,6 +168,18 @@ class ReflexCaptureAgent(CaptureAgent):
       maxValue = max(values)
       bestActions = [a for a, v in zip(actions, values) if v == maxValue]
       action = bestActions[0]
+    
+    if gameState.getAgentState(self.index).numCarrying >= 5 :
+      bestDist = 9999
+      for action in actions:
+          successor = self.getSuccessor(gameState, action)
+          pos2 = successor.getAgentPosition(self.index)
+          dist = self.getMazeDistance(self.start, pos2)
+          if dist < bestDist:
+              bestAction = action
+              bestDist = dist
+      action = bestAction
+    
     return action
 
 
@@ -181,6 +192,7 @@ class ReflexCaptureAgent(CaptureAgent):
       action = np.random.choice(possible_actions)
     action = ACTIONS_VALUE[action]
     return action
+    
 
   def get_reward(self, old_gameState, gameState):
     score_reward = gameState.getAgentState(self.index).numReturned - old_gameState.getAgentState(self.index).numReturned
