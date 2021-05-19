@@ -9,14 +9,18 @@ import state as stt
 MAX_SCORE = 20
 MAX_COLLECTED = 20
 DISTANCE_PENALIZED_OUR_AGENTS = 6
+NUMBER_FOOD_COLLECT = 5
 MAX_DISTANCE_FOOD = 1  # h * w or w
+MAX_DISTANCE_HOMEBASE = 1  # h * w/2 or w/2
 
-COEF_SCORE = 10
-COEF_COLL1 = 5
-COEF_COLL2 = 3
-COEF_DISTANCE_FOOD = 1
-COEF_DISTANCE_OUR_AGENTS = 1
-
+COEF_SCORE = 30
+COEF_COLL = 20
+COEF_COLL_OPP = 5
+COEF_DISTANCE_FOOD1 = 1
+COEF_DISTANCE_FOOD2 = 0.5
+COEF_DISTANCE_OUR_AGENTS = 0.1
+COEF_DISTANCE_HOMEBASE1 = 2
+COEF_DISTANCE_HOMEBASE2 = 1
 
 
 # Your foo function
@@ -76,6 +80,42 @@ def get_distance_between_our_agents(state):
     return 0
 
 
+# get homebase position
+def get_homebase_positions(wall):
+    res = []
+    h, w = wall.shape
+    j = w//2  # vertical coordinate of our homebase
+    for i in range(h):
+        if wall[i][j] == 0:
+            res.append((i, j))
+    return res
+
+
+# get distance to our home_base
+def get_distance_homebase(state, index):
+    pos = state.mainPosition
+    if index == state.teammateIndex:
+        pos = state.teammatePosition
+    homebase_position = get_homebase_positions(state.wall)
+    return distance_closest_bfs(state.wall, homebase_position, pos)  # bfs distance
+
+
+# calculate penalty for distance to homebase
+def calculate_homebase_penalty(state, index, dist_food):
+    col = state.mainCollected
+    if index == state.teammateIndex:
+        col = state.teammateCollected
+    if col == 0:  # nothing collected
+        return 0
+
+    MAX_DISTANCE_HOMEBASE = state.wall.shape[1] / 2  # w / 2
+    dist_homebase = get_distance_homebase(state, index)
+    if dist_homebase < dist_food or col > NUMBER_FOOD_COLLECT:  # closest to come back than to catch next food
+        return dist_homebase / MAX_DISTANCE_HOMEBASE
+
+    return 0  # no penalty if food closer
+
+
 # bfs to find the boxes at the right distance of the agent
 def distance_closest_bfs(wall, goals, pos):
     """Calculate with bfs the minimum distance between pos to reach a goal"""
@@ -114,18 +154,31 @@ def convert_move(move):
 def heuristic(state):
     h, w = state.wall.shape
     MAX_DISTANCE_FOOD = w
+
     score = COEF_SCORE * (state.score / MAX_SCORE)
-    coll1 = COEF_COLL1 * (state.mainCollected / MAX_COLLECTED + state.teammateCollected / MAX_COLLECTED)
-    coll2 = COEF_COLL2 * (state.opponentCollected / MAX_COLLECTED)
-    collected = coll1 - coll2
+
+    coll = COEF_COLL * (state.mainCollected / MAX_COLLECTED + state.teammateCollected / MAX_COLLECTED)
+    coll_opp = COEF_COLL_OPP * (state.opponentCollected / MAX_COLLECTED)
+    collected = coll - coll_opp
+
     foodPosition = get_food_positions(state.food)
-    real_distance_food = distance_closest_bfs(state.wall, foodPosition, state.mainPosition)
-    distance_food = COEF_DISTANCE_FOOD * (real_distance_food / MAX_DISTANCE_FOOD)
+    real_distance_food1 = distance_closest_bfs(state.wall, foodPosition, state.mainPosition)
+    real_distance_food2 = distance_closest_bfs(state.wall, foodPosition, state.teammatePosition)
+    distance_food1 = COEF_DISTANCE_FOOD1 * (real_distance_food1 / MAX_DISTANCE_FOOD)
+    distance_food2 = COEF_DISTANCE_FOOD2 * (real_distance_food2 / MAX_DISTANCE_FOOD)
+    distance_food = distance_food1 + distance_food2
+
     distance_our_agents = COEF_DISTANCE_OUR_AGENTS * get_distance_between_our_agents(state)
-    # distance home
-    res = score + collected - distance_food + distance_our_agents
-    print("h :", coll1, coll2)
-    print("heuristic :", state.mainPosition, " |", score, collected, distance_food, distance_our_agents, " ||", res)
+
+    distance_homebase1 = COEF_DISTANCE_HOMEBASE1 * calculate_homebase_penalty(state, state.mainIndex, distance_food1)
+    distance_homebase2 = COEF_DISTANCE_HOMEBASE2 * calculate_homebase_penalty(state, state.teammateIndex, distance_food2)
+    distance_homebase = distance_homebase1 + distance_homebase2
+
+    res = score + collected - distance_food + distance_our_agents - distance_homebase
+
+    print("heuristic : pos=", state.mainPosition, "|| sc=", score, "col=", collected, "df1=", distance_food1, "df2=",
+          distance_food2, "da=", distance_our_agents, "dh1=", distance_homebase1, "dh2=", distance_homebase2, " ||",
+          "res=", res)
     return res
 
 
@@ -151,7 +204,7 @@ def alphabeta(state, depth, alpha, beta, player, getBestMove=False):
             if beta <= alpha:  # beta pruning
                 break
 
-        print("aB | MAX", v)
+        print("aB | MAX", player, v)
 
         if getBestMove:
             return convert_move(bestMove)
@@ -177,5 +230,7 @@ def alphabeta(state, depth, alpha, beta, player, getBestMove=False):
                 beta = min(beta, v)
                 if beta <= alpha:  # alpha pruning
                     break
+
+        print("aB | MIN", player, v)
 
     return v

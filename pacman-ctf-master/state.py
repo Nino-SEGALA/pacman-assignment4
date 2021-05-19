@@ -67,8 +67,8 @@ class State:
         i, j = position_after_move
         if (self.food[i][j] == 1 and same_team(index, self.mainIndex)) or \
                 (self.food[i][j] == -1 and not same_team(index, self.mainIndex)):
-            print("food_after_move :", self.food[i][j], index, position_after_move)
-            print(self.food)
+            #print("food_after_move :", self.food[i][j], index, position_after_move)
+            #print(self.food)
             new_food = copy.deepcopy(self.food)
             new_food[i][j] = 0
             return True, new_food

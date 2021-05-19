@@ -161,7 +161,7 @@ class AgentAlphaBeta(CaptureAgent):
         beta = np.inf
         player = self.index
         bestMove = alphabeta.alphabeta(state, depth, alpha, beta, player, getBestMove=True)
-        print("chooseAction : bestMove = ", bestMove)
+        print("chooseAction : agent =", player, "position =", state.mainPosition, "bestMove = ", bestMove)
 
         #print("alpha beta agent : ", bestMove)
         return bestMove
