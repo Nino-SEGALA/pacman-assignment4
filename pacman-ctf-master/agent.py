@@ -124,17 +124,20 @@ class Agent():
         states = self.state_buffer[batch]
         actions = np.argmax(self.action_buffer[batch],axis=1)
         next_states = self.next_state_buffer[batch]
-        idx = np.arange(len(batch))
+        idx = [[i,a] for i,a in enumerate(actions)]
         
         # compute current Q values and Bellman
-        current_val = self.NN(states)
         next_val = self.target_NN(next_states)
-        targets = rewards + self.gamma*tfm.reduce_max(next_val,axis=1) # Do I have to use the Bellman error here or is that done in fit ? 
-        current_val = current_val.numpy()
-        current_val[idx,actions] = targets
+        targets = rewards + self.gamma*tfm.reduce_max(next_val,axis=1) 
 
         #update Network
-        self.NN.fit(states,current_val, verbose=False)
+        with tf.GradientTape() as tape:
+            current_val = self.NN(states)
+            current_val_sparse = tf.gather_nd(current_val,idx)
+            loss = self.NN.loss(targets, current_val_sparse)
+        grads = tape.gradient(loss, self.NN.trainable_variables)
+        self.NN.optimizer.apply_gradients(grads_and_vars=zip(grads, self.NN.trainable_variables))
+        
 
     def update_epsilon(self):
         '''After every episode decrease epsilon by 5%, (e.g explore less and less)'''
@@ -154,5 +157,6 @@ class Agent():
                 a.assign(b) 
             self.update_counter = 0
 
-        
-        
+
+
+

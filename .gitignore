@@ -1,3 +1,4 @@
 # Project exclude paths
 /venv/
 /pacman-ctf-master/test.ipynb
+/pacman-ctf-master/models/

@@ -176,14 +176,14 @@ class State(CaptureAgent):
 
 
         # 5
-        scared_ghost_friend = np.zeros((height, width), dtype=int)
-        if agent_state.scaredTimer > 0:
-            scared_ghost_friend[self.invert(gameState,gameState.getAgentPosition(self.index))] = 1
-        if team_mate_state.scaredTimer > 0:
-            scared_ghost_friend[self.invert(gameState,team_mate_state.getPosition())] = 1
-        if color is 'red':
-            self.invertMatrixForRed(gameState,scared_ghost_friend)
-        self.reorderMatrixLikeDisplay(gameState,scared_ghost_friend)
+        # scared_ghost_friend = np.zeros((height, width), dtype=int)
+        # if agent_state.scaredTimer > 0:
+        #     scared_ghost_friend[self.invert(gameState,gameState.getAgentPosition(self.index))] = 1
+        # if team_mate_state.scaredTimer > 0:
+        #     scared_ghost_friend[self.invert(gameState,team_mate_state.getPosition())] = 1
+        # if color is 'red':
+        #     self.invertMatrixForRed(gameState,scared_ghost_friend)
+        # self.reorderMatrixLikeDisplay(gameState,scared_ghost_friend)
 
         # 6
         pacman_opponent = np.zeros((height, width), dtype=int)
@@ -221,16 +221,15 @@ class State(CaptureAgent):
 
 
         # 7
-        scared_ghost_opponent = np.zeros((height, width), dtype=int)
+        # scared_ghost_opponent = np.zeros((height, width), dtype=int)
         """if opponent_state[0].scaredTimer > 0:
         scared_ghost_opponent[gameState.invert(opponent_state[0].getPosition())] = 1
         if opponent_state[1].scaredTimer > 0:
         scared_ghost_opponent[gameState.invert(opponent_state[1].getPosition())] = 1"""
-        self.reorderMatrixLikeDisplay(gameState,scared_ghost_opponent)
-        if color is 'red':
-            self.invertMatrixForRed(gameState,scared_ghost_opponent)
+        # if color is 'red':
+        #     self.invertMatrixForRed(gameState,scared_ghost_opponent)
 
-        matrices = [walls, food, power_capsule, pacman_friend, scared_ghost_friend, pacman_opponent, scared_ghost_opponent]
+        matrices = [walls, food, power_capsule, pacman_friend, pacman_opponent]
         output = np.stack(matrices,axis=-1)
         output = np.expand_dims(output, axis=0)
         output = output.astype(dtype=np.float32)

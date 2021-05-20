@@ -41,7 +41,7 @@ class Counter:
 
 counter = Counter()
 
-agent_red = a.Agent(n_actions=5, gamma=0.99, epsilon=0.1, alpha=1e-3, state_dim = (18,34,7), batch_size=32,
+agent_red = a.Agent(n_actions=5, gamma=0.999, epsilon=0.0, alpha=1e-3, state_dim = (18,34,5), batch_size=32,
             buffer_size=(30000,), eps_final=0.1, name='Network_red')
 try:
   agent_red.NN = tfk.models.load_model('models/network_red')
@@ -50,7 +50,7 @@ try:
 except:
   print("couldn't load red")
 
-agent_blue = a.Agent(n_actions=5, gamma=0.99, epsilon=0.1, alpha=1e-3, state_dim = (18,34,7), batch_size=32,
+agent_blue = a.Agent(n_actions=5, gamma=0.999, epsilon=0.0, alpha=1e-3, state_dim = (18,34,5), batch_size=32,
             buffer_size=(30000,), eps_final=0.1,name='Network_blue')
 try:
   agent_blue.NN = tfk.models.load_model('models/network_blue')
@@ -95,7 +95,6 @@ class ReflexCaptureAgent(CaptureAgent):
     CaptureAgent.registerInitialState(self, gameState)
     self.red_ind = gameState.getRedTeamIndices()
     self.blue_ind = gameState.getBlueTeamIndices()
-    self.counter = counter
     self.my_team = 'blue' if self.index in self.blue_ind else 'red'
 
     if self.my_team == 'blue':
@@ -108,8 +107,6 @@ class ReflexCaptureAgent(CaptureAgent):
       self.agent = agent_red
 
 
-    self.hist = SCORES[self.index]
-    self.saved = False
     self.states = State(self.index)
     self.ourFoodLastStep = self.getFood(gameState)
     self.width = self.ourFoodLastStep.width  # width of the board (32)
@@ -185,6 +182,7 @@ class ReflexCaptureAgent(CaptureAgent):
 
   def get_NN_action(self, c_state, possible_actions):
     action = self.agent.get_action(c_state, possible_actions, self.index)
+
     self.actions_ohc = np.zeros(5)
     self.actions_ohc[action] = 1.0
 
