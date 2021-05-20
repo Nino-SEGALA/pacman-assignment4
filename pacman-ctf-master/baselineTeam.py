@@ -93,18 +93,18 @@ class ReflexCaptureAgent(CaptureAgent):
   def registerInitialState(self, gameState):
     self.start = gameState.getAgentPosition(self.index)
     CaptureAgent.registerInitialState(self, gameState)
-    self.red = gameState.getRedTeamIndices()
-    self.blue = gameState.getBlueTeamIndices()
+    self.red_ind = gameState.getRedTeamIndices()
+    self.blue_ind = gameState.getBlueTeamIndices()
     self.counter = counter
-    self.my_team = 'blue' if self.index in self.blue else 'red'
+    self.my_team = 'blue' if self.index in self.blue_ind else 'red'
 
     if self.my_team == 'blue':
-      self.team = self.blue
-      self.opp = self.red
+      self.team = self.blue_ind
+      self.opp = self.red_ind
       self.agent = agent_blue
     else:
-      self.team = self.red
-      self.opp = self.blue
+      self.team = self.red_ind
+      self.opp = self.blue_ind
       self.agent = agent_red
 
 
@@ -160,7 +160,7 @@ class ReflexCaptureAgent(CaptureAgent):
     return action
 
 
-  def get_base_action(self, gameState, actions, epsilon=0.2):
+  def get_base_action(self, gameState, actions, epsilon=0.0):
     if np.random.rand() < epsilon:
       action = np.random.choice(actions)
     else:
