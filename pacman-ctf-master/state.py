@@ -95,23 +95,23 @@ class State:
     def is_red(self):
         return 1 if self.color == 'red' else -1
 
-    def new_score(self, index, new_pos):
+    def new_score(self, index, new_pos, main_col, teammate_col, opponent_col):
         vertical = new_pos[1]
-        limit = len(self.wall[0])
+        limit = len(self.wall[1])//2
         new_score = self.score
         if index == self.mainIndex:
             if vertical == limit and self.mainCollected > 0:  # returns home with collected food
                 new_score += self.is_red() * self.mainCollected
-                self.mainCollected = 0
+                main_col = 0
         elif index == self.teammateIndex:
             if vertical == limit and self.teammateCollected > 0:  # returns home with collected food
                 new_score += self.is_red() * self.teammateCollected
-                self.teammateCollected = 0
+                teammate_col = 0
         else:
             if vertical == limit - 1 and self.opponentCollected > 0:  # returns home with collected food
-                new_score += self.is_red() * self.opponentCollected  # "1 opponent care all the collected food"
-                self.opponentCollected = 0
-        return new_score
+                new_score -= self.is_red() * self.opponentCollected  # "1 opponent care all the collected food"
+                opponent_col = 0
+        return new_score, main_col, teammate_col, opponent_col
 
     def in_homebase(self, index, new_pos):
         limit = len(self.wall[0])
@@ -146,7 +146,7 @@ class State:
             else:
                 main_coll, teammate_coll, opponent_coll = self.mainCollected, self.teammateCollected, \
                                                           self.opponentCollected
-            new_score = self.new_score(index, new_pos)
+            new_score, main_coll, teammate_coll, opponent_coll = self.new_score(index, new_pos, main_coll, teammate_coll, opponent_coll )
             new_state = State(self.color, new_score, self.wall, food, self.mainIndex, self.teammateIndex, main_pos, teammate_pos,
                               main_coll, teammate_coll, self.teamScared, self.opponentScared, self.opponentIndex1,
                               self.opponentIndex2, opp_pos1, opp_pos2, opponent_coll)

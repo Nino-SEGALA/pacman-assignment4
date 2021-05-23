@@ -224,6 +224,8 @@ def superposition(state):
 
 
 def heuristic_superposition(state):
+    print("h_s :", state.opponentScared)
+
     team = [state.mainPosition, state.teammatePosition]
     opponent = []
     side_limit = state.wall.shape[1] // 2  # w / 2
@@ -263,7 +265,7 @@ def heuristic(state):
     h, w = state.wall.shape
     MAX_DISTANCE_FOOD = w
 
-    score = COEF_SCORE * (state.score / MAX_SCORE)
+    score = COEF_SCORE * (state.is_red() * state.score / MAX_SCORE)
 
     coll = COEF_COLL * (state.mainCollected / MAX_COLLECTED + state.teammateCollected / MAX_COLLECTED)
     coll_opp = COEF_COLL_OPP * (state.opponentCollected / MAX_COLLECTED)

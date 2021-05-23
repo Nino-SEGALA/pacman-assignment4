@@ -136,7 +136,7 @@ class AgentAlphaBeta(CaptureAgent):
         opponent1_state = gameState.getAgentState(opponent_index1)
         opponent2_state = gameState.getAgentState(opponent_index2)
 
-        opponent_scared = opponent1_state.scaredTimer > 0
+        opponent_scared = (opponent1_state.scaredTimer > 0) or (opponent2_state.scaredTimer > 0)
 
         opponent_position1 = gameState.getAgentPosition(opponent_index1)
         if opponent_position1:  # not None
@@ -162,6 +162,13 @@ class AgentAlphaBeta(CaptureAgent):
 
         print()
         print("- chooseAction -")
+
+        opponent_index1 = (self.index + 1) % 4
+        opponent_index2 = (self.index + 3) % 4
+        opponent1_state = gameState.getAgentState(opponent_index1)
+        opponent2_state = gameState.getAgentState(opponent_index2)
+        opponent_scared = (opponent1_state.scaredTimer > 0) or (opponent2_state.scaredTimer > 0)
+        print("cA :", opponent_scared)
 
         #actions = gameState.getLegalActions(self.index)
 
