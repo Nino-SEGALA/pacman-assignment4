@@ -3,9 +3,10 @@ from captureAgents import CaptureAgent
 import numpy as np
 import state
 import alphabeta
+import time
 
 TIME_LIMIT = 0.95
-DEPTH = 4
+DEPTH = 2
 
 #################
 # Team creation #
@@ -157,6 +158,8 @@ class AgentAlphaBeta(CaptureAgent):
         Picks the best action given to alphabeta
         """
 
+        begin = time.time()
+
         print()
         print("- chooseAction -")
 
@@ -178,4 +181,10 @@ class AgentAlphaBeta(CaptureAgent):
             #player_main_pos = self.invert(gameState.getAgentPosition(self.index))
 
         #print("alpha beta agent : ", bestMove)
+
+        end = time.time()
+        precision = 1000
+        #print("time needed : ", int(precision*(end-begin)) / precision)
+        print("score =", state.score)
+
         return bestMove

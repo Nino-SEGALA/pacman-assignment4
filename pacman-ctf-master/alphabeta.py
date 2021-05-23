@@ -19,7 +19,7 @@ COEF_COLL = 30
 COEF_COLL_OPP = 5
 COEF_DISTANCE_FOOD1 = 1
 COEF_DISTANCE_FOOD2 = 0.5
-COEF_DISTANCE_OUR_AGENTS = 0.1
+COEF_DISTANCE_OUR_AGENTS = 0.5  # 0.1
 COEF_DISTANCE_HOMEBASE1 = 1
 COEF_DISTANCE_HOMEBASE2 = 0.5
 COEF_DISTANCE_OPPONENT = 1
@@ -129,29 +129,36 @@ def distance_opponent(state, pos):
         opponent.append(state.opponentPosition2)
 
     if not opponent:  # opponents' position unknown
-        return 0
+        return MAX_DISTANCE_OPPONENT
 
     for opp_pos in opponent:
         dist = distance_closest_bfs(state.wall, [opp_pos], pos)  # distance agent - opponent
 
-        if opp_pos[1] < side_limit:  # opponent is ghost
+        if opp_pos[1] < side_limit and pos[1] < side_limit:  # opponent is ghost and we are pacman
             if not state.opponentScared:  # opponent not scared
                 dist = - dist  # negative distance
-        if opp_pos[1] > side_limit:  # opponent is pacman
+        if opp_pos[1] >= side_limit and pos[1] >= side_limit:  # opponent is pacman and we are ghost
             if state.teamScared:  # we are scared
                 dist = - dist  # negative distance
 
         if abs(dist) < abs(min_distance):
             min_distance = dist
 
-    dist = dist / MAX_DISTANCE_OPPONENT
-    if dist < 0:
-        dist = -1 - dist
-    else:
-        dist = 1 - dist
+    """if dist == 0:  # eaten
+        return (2 * (pos[1] > side_limit) - 1) * 100"""
 
-    print("distance_opponent :", dist)
-    return dist
+    print("distance_opponent: pos=", pos, "opp=", opponent, min_distance)
+
+    min_distance = min_distance / MAX_DISTANCE_OPPONENT
+    if min_distance < 0:
+        min_distance = -1.5 - min_distance
+        #print("dist_opp < 0: ", dist)
+    else:
+        min_distance = 1.5 - min_distance
+        #print("dist_opp > 0: ", dist)
+
+    #print("distance_opponent :", dist)
+    return min_distance
 
 
 # bfs to find the boxes at the right distance of the agent
@@ -176,8 +183,8 @@ def distance_closest_bfs(wall, goals, pos):
                 lookAt.append((new_pos_i, new_pos_j))
 
     print("distance_closest_food | No food found")
-    print(board)
-    exit()  # REMOVE THIS !!!
+    #print(board)
+    #exit()  # REMOVE THIS !!!
     return 1000  # no food found
 
 
@@ -197,6 +204,53 @@ def convert_move(color, move):
     for (direction, command) in conv:
         if move == direction:
             return command
+
+
+# an agent is eaten by another one
+def superposition(state):
+    team = [state.mainPosition, state.teammatePosition]
+    opponent = [state.opponentPosition1, state.opponentPosition2]
+    for pos in team:
+        for pos_opp in opponent:
+            if pos == pos_opp:  # there is a superposition
+                return True
+    return False
+
+
+def heuristic_superposition(state):
+    team = [state.mainPosition, state.teammatePosition]
+    opponent = []
+    side_limit = state.wall.shape[1] // 2  # w / 2
+    if state.opponentPosition1:
+        opponent.append(state.opponentPosition1)
+    if state.opponentPosition2:
+        opponent.append(state.opponentPosition2)
+
+    for i in range(len(team)):
+        pos = team[i]
+        for opp_pos in opponent:
+            if pos == opp_pos:
+                if pos[1] < side_limit:  # opponent is ghost and we are pacman
+                    if not state.opponentScared:  # opponent not scared
+                        if i == 2:  # teammate
+                            return -10
+                        return -100
+                    else:  # opponent scared
+                        if i == 2:  # teammate
+                            return 10
+                        return 100
+                if pos[1] >= side_limit:  # opponent is pacman and we are ghost
+                    if state.teamScared:  # we are scared
+                        if i == 2:  # teammate
+                            return -10
+                        return -100
+                    else:  # we are not scared
+                        if i == 2:  # teammate
+                            return 10
+                        return 100
+
+    print("heu_sup, shouldn't come here")
+    return None
 
 
 def heuristic(state):
@@ -227,15 +281,23 @@ def heuristic(state):
     res = score + collected - distance_food + distance_our_agents - distance_homebase + distance_enemy
 
     if state.color is 'blue':
-        print("heuristic : pos=", state.mainPosition, "|| sc=", score, "col=", collected, "df1=", distance_food1,
-              "df2=", distance_food2, "da=", distance_our_agents, "dh1=", distance_homebase1, "dh2=",
-              distance_homebase2, "do=", distance_enemy, "||", "res=", res)
+        print("heuristic : pos=", state.mainPosition, "pos2=", state.teammatePosition, "pos3=", state.opponentPosition1,
+              "pos4=", state.opponentPosition2, "|| sc=", score, "col=", collected, "df1=", distance_food1,
+              "da=", distance_our_agents, "dh1=", distance_homebase1, "do=", distance_enemy, "||", "res=", res)
+    # "df2=", distance_food2, "dh2=", distance_homebase2
     return res
 
 
 # alpha beta algorithm
 def alphabeta(state, depth, alpha, beta, player, getBestMove=False):
     """simulate the different possibilities for depth moves and use minimax logic to find the best option"""
+    print("alphabeta : depth=", depth, "player=", player)
+
+    if superposition(state):
+        hs = heuristic_superposition(state)
+        print("heuristic_superposition:", hs)
+        return hs
+
     if depth == 0:  # or end of game
         #print("aB | depth 0")
         return heuristic(state)
@@ -266,7 +328,7 @@ def alphabeta(state, depth, alpha, beta, player, getBestMove=False):
 
         # Opponent's position unknown
         if not state.position_index(player):  # None : unknown
-            #print("aB | Opp_pos unknown")
+            print("aB | Opp_pos unknown")
             next_player = (player + 1) % 4
             v = min(v, alphabeta(state, depth, alpha, beta, next_player))  # depth-1 (?) : no simulation here
             """beta = min(beta, v)
@@ -275,7 +337,9 @@ def alphabeta(state, depth, alpha, beta, player, getBestMove=False):
 
         else:
             children = state.next_states(player)
+            print("bug ? length_children:", len(children))
             for (move, child) in children:
+                print("bug2 ? move=", move)
                 next_player = (player+1) % 4
                 v = min(v, alphabeta(child, depth-1, alpha, beta, next_player))
                 beta = min(beta, v)
