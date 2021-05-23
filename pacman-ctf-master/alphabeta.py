@@ -5,6 +5,8 @@ import numpy as np
 import state as stt
 
 
+Print = False
+
 # PARAMETERS
 MAX_SCORE = 20
 MAX_COLLECTED = 20
@@ -27,24 +29,27 @@ COEF_DISTANCE_OPPONENT = 1
 
 # Your foo function
 def foo(n, action):
+    begin = time.time()
     for i in range(5 * n):
         action.value += 1
-        print("Tick", action.value)
-        time.sleep(1)
+        end = time.time()
+        print("Tick", action.value, int(100 * (end - begin)) / 100)
+        time.sleep(0.1)
 
 
 def main():
     # Start foo as a process
     #global choosenAction
-    foo(1, choosenAction)
-    print("0 :", choosenAction.value)
-    foo(2, choosenAction)
-    print("1 :", choosenAction.value)
-    p = multiprocessing.Process(target=foo, name="Foo", args=(10, choosenAction))
+    #foo(1, choosenAction)
+    #print("0 :", choosenAction.value)
+    #foo(2, choosenAction)
+    #print("1 :", choosenAction.value)
+    begin = time.time()
+    p = multiprocessing.Process(target=foo, name="Foo", args=(100, choosenAction))
     p.start()
 
     # Wait 10 seconds for foo
-    time.sleep(3)
+    time.sleep(0.95)
 
     # Terminate foo
     p.terminate()
@@ -53,6 +58,8 @@ def main():
     p.join()
 
     print("2 :", choosenAction.value)
+    end = time.time()
+    print("End :", int(100 * (end - begin)) / 100)
 
     return choosenAction.value
 
@@ -76,9 +83,11 @@ def manhattan_distance(p1, p2):
 def get_distance_between_our_agents(state):
     pos1 = state.mainPosition
     pos2 = state.teammatePosition
+    width_board = state.wall.shape[1] - 2
+    penalization_term = (width_board - pos1[1]) / width_board
     if manhattan_distance(pos1, pos2) <= DISTANCE_PENALIZED_OUR_AGENTS:
         dist = distance_closest_bfs(state.wall, [pos2], pos1)  # bfs distance
-        return min(0, (dist - DISTANCE_PENALIZED_OUR_AGENTS) / DISTANCE_PENALIZED_OUR_AGENTS)
+        return min(0, penalization_term * (dist - DISTANCE_PENALIZED_OUR_AGENTS) / DISTANCE_PENALIZED_OUR_AGENTS)
     return 0
 
 
@@ -138,13 +147,15 @@ def distance_opponent(state, pos, dist_hb):
             if not state.opponentScared:  # opponent not scared
                 if dist > 1 and dist_hb > 0:
                     dist += 17 * (1-dist_hb)  # avoid deadlocks
-                    print("dist_opp:", 16.7 * (1-dist_hb))
+                    if Print:
+                        print("dist_opp:", 16.7 * (1-dist_hb))
                 dist = - dist  # negative distance
         if opp_pos[1] >= side_limit and pos[1] >= side_limit:  # opponent is pacman and we are ghost
             if state.teamScared:  # we are scared
                 if dist > 1 and dist_hb > 0:
                     dist += 17 * (1-dist_hb)  # avoid deadlocks
-                    print("dist_opp:", 16.7 * (1 - dist_hb))
+                    if Print:
+                        print("dist_opp:", 16.7 * (1 - dist_hb))
                 dist = - dist  # negative distance
 
         if abs(dist) < abs(min_distance):
@@ -188,7 +199,8 @@ def distance_closest_bfs(wall, goals, pos):
                 board[new_pos_i][new_pos_j] = distance + 1
                 lookAt.append((new_pos_i, new_pos_j))
 
-    print("distance_closest_food | No food found")
+    if Print:
+        print("distance_closest_food | No food found")
     #print(board)
     #exit()  # REMOVE THIS !!!
     return 1000  # no food found
@@ -233,7 +245,8 @@ def superposition(state):
 
 
 def heuristic_superposition(state):
-    print("h_s :", state.opponentScared)
+    if Print:
+        print("h_s :", state.opponentScared)
 
     team = [state.mainPosition, state.teammatePosition]
     opponent = []
@@ -266,7 +279,8 @@ def heuristic_superposition(state):
                             return 10
                         return 100
 
-    print("heu_sup, shouldn't come here")
+    if Print:
+        print("heu_sup, shouldn't come here")
     return None
 
 
@@ -303,10 +317,11 @@ def heuristic(state):
 
     res = score + collected - distance_food + distance_our_agents - distance_homebase + distance_enemy
 
-    if state.color is 'blue':
-        print("heuristic : pos=", state.mainPosition, "pos2=", state.teammatePosition, "pos3=", state.opponentPosition1,
-              "pos4=", state.opponentPosition2, "|| sc=", score, "col=", collected, "df1=", distance_food1,
-              "da=", distance_our_agents, "dh1=", distance_homebase1, "do=", distance_enemy, "||", "res=", res)
+    if Print:
+        if state.color is 'blue':
+            print("heuristic : pos=", state.mainPosition, "pos2=", state.teammatePosition, "pos3=", state.opponentPosition1,
+                  "pos4=", state.opponentPosition2, "|| sc=", score, "col=", collected, "df1=", distance_food1,
+                  "da=", distance_our_agents, "dh1=", distance_homebase1, "do=", distance_enemy, "||", "res=", res)
     # "df2=", distance_food2, "dh2=", distance_homebase2
     return res
 
@@ -318,7 +333,8 @@ def alphabeta(state, depth, alpha, beta, player, getBestMove=False):
 
     if superposition(state):
         hs = heuristic_superposition(state)
-        print("heuristic_superposition:", hs)
+        if Print:
+            print("heuristic_superposition:", hs)
         return hs
 
     if depth == 0:  # or end of game
@@ -340,7 +356,8 @@ def alphabeta(state, depth, alpha, beta, player, getBestMove=False):
             if beta <= alpha:  # beta pruning
                 break
 
-        print("aB | MAX", player, v)
+        if Print:
+            print("aB | MAX", player, v)
 
         if getBestMove:
             return convert_move(state.color, bestMove)
@@ -351,7 +368,8 @@ def alphabeta(state, depth, alpha, beta, player, getBestMove=False):
 
         # Opponent's position unknown
         if not state.position_index(player):  # None : unknown
-            print("aB | Opp_pos unknown")
+            if Print:
+                print("aB | Opp_pos unknown")
             next_player = (player + 1) % 4
             v = min(v, alphabeta(state, depth, alpha, beta, next_player))  # depth-1 (?) : no simulation here
             """beta = min(beta, v)
@@ -367,6 +385,7 @@ def alphabeta(state, depth, alpha, beta, player, getBestMove=False):
                 if beta <= alpha:  # alpha pruning
                     break
 
-        print("aB | MIN", player, v)
+        if Print:
+            print("aB | MIN", player, v)
 
     return v

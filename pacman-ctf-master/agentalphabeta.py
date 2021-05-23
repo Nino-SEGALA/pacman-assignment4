@@ -5,8 +5,10 @@ import state
 import alphabeta
 import time
 
+Print = False
+
 TIME_LIMIT = 0.95
-DEPTH = 2
+DEPTH = 4
 
 #################
 # Team creation #
@@ -160,8 +162,9 @@ class AgentAlphaBeta(CaptureAgent):
 
         begin = time.time()
 
-        print()
-        print("- chooseAction -")
+        if Print:
+            print()
+            print("- chooseAction -")
 
         #actions = gameState.getLegalActions(self.index)
 
@@ -179,16 +182,21 @@ class AgentAlphaBeta(CaptureAgent):
         player = self.index
         bestMove = alphabeta.alphabeta(state, depth, alpha, beta, player, getBestMove=True)
 
-        if state.color is 'blue':
-            print("chooseAction : agent =", player, "position =", state.mainPosition, "bestMove = ", bestMove)
+        if Print:
+            if state.color is 'blue':
+                print("chooseAction : agent =", player, "position =", state.mainPosition, "bestMove = ", bestMove)
         #else:  # red
             #player_main_pos = self.invert(gameState.getAgentPosition(self.index))
 
         #print("alpha beta agent : ", bestMove)
 
-        end = time.time()
+        """end = time.time()
         precision = 1000
-        print("time needed : ", int(precision*(end-begin)) / precision)
-        print("score =", state.score)
+        time_algo = int(precision * (end - begin)) / precision
+        print("time needed : ", time_algo)
+        if time_algo > 1:
+            print("TOO LONG !!!")"""
+        if Print:
+            print("score =", state.score)
 
         return bestMove
