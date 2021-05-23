@@ -212,6 +212,15 @@ def convert_move(color, move):
             return command
 
 
+def index_next_player(state, player):
+    next_player = (player + 1) % 4
+    # next_player's position unknown
+    if (state.opponentIndex1 == next_player and not state.opponentPosition1)\
+            or (state.opponentIndex2 == next_player and not state.opponentPosition2):
+        return (player + 2) % 4  # opponent1's teammate
+    return next_player
+
+
 # an agent is eaten by another one
 def superposition(state):
     team = [state.mainPosition, state.teammatePosition]
@@ -352,7 +361,7 @@ def alphabeta(state, depth, alpha, beta, player, getBestMove=False):
         else:
             children = state.next_states(player)
             for (move, child) in children:
-                next_player = (player+1) % 4
+                next_player = index_next_player(state, player)
                 v = min(v, alphabeta(child, depth-1, alpha, beta, next_player))
                 beta = min(beta, v)
                 if beta <= alpha:  # alpha pruning
