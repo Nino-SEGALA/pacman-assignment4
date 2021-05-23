@@ -119,7 +119,7 @@ def calculate_homebase_penalty(state, index, dist_food):
 
 
 # calculate distance to the enemy (<0 when enemy can eat us)
-def distance_opponent(state, pos):
+def distance_opponent(state, pos, dist_hb):
     opponent = []
     side_limit = state.wall.shape[1] // 2  # w / 2
     min_distance = np.inf
@@ -136,9 +136,15 @@ def distance_opponent(state, pos):
 
         if opp_pos[1] < side_limit and pos[1] < side_limit:  # opponent is ghost and we are pacman
             if not state.opponentScared:  # opponent not scared
+                if dist > 1 and dist_hb > 0:
+                    dist += 17 * (1-dist_hb)  # avoid deadlocks
+                    print("dist_opp:", 16.7 * (1-dist_hb))
                 dist = - dist  # negative distance
         if opp_pos[1] >= side_limit and pos[1] >= side_limit:  # opponent is pacman and we are ghost
             if state.teamScared:  # we are scared
+                if dist > 1 and dist_hb > 0:
+                    dist += 17 * (1-dist_hb)  # avoid deadlocks
+                    print("dist_opp:", 16.7 * (1 - dist_hb))
                 dist = - dist  # negative distance
 
         if abs(dist) < abs(min_distance):
@@ -147,10 +153,10 @@ def distance_opponent(state, pos):
     """if dist == 0:  # eaten
         return (2 * (pos[1] > side_limit) - 1) * 100"""
 
-    print("distance_opponent: pos=", pos, "opp=", opponent, min_distance)
+    #print("distance_opponent: pos=", pos, "opp=", opponent, min_distance)
 
     min_distance = min_distance / MAX_DISTANCE_OPPONENT
-    if min_distance < 0:
+    if min_distance < 0:  # enemy can eat us
         min_distance = -1.5 - min_distance
         #print("dist_opp < 0: ", dist)
     else:
@@ -276,7 +282,7 @@ def heuristic(state):
     distance_homebase2 = COEF_DISTANCE_HOMEBASE2 * calculate_homebase_penalty(state, state.teammateIndex, distance_food2)
     distance_homebase = distance_homebase1 + distance_homebase2
 
-    distance_enemy = COEF_DISTANCE_OPPONENT * distance_opponent(state, state.mainPosition)
+    distance_enemy = COEF_DISTANCE_OPPONENT * distance_opponent(state, state.mainPosition, distance_homebase1)
 
     res = score + collected - distance_food + distance_our_agents - distance_homebase + distance_enemy
 
@@ -291,7 +297,7 @@ def heuristic(state):
 # alpha beta algorithm
 def alphabeta(state, depth, alpha, beta, player, getBestMove=False):
     """simulate the different possibilities for depth moves and use minimax logic to find the best option"""
-    print("alphabeta : depth=", depth, "player=", player)
+    #print("alphabeta : depth=", depth, "player=", player)
 
     if superposition(state):
         hs = heuristic_superposition(state)
@@ -337,9 +343,7 @@ def alphabeta(state, depth, alpha, beta, player, getBestMove=False):
 
         else:
             children = state.next_states(player)
-            print("bug ? length_children:", len(children))
             for (move, child) in children:
-                print("bug2 ? move=", move)
                 next_player = (player+1) % 4
                 v = min(v, alphabeta(child, depth-1, alpha, beta, next_player))
                 beta = min(beta, v)
