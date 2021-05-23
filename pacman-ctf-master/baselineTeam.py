@@ -41,7 +41,7 @@ class Counter:
 
 counter = Counter()
 
-agent_red = a.Agent(n_actions=5, gamma=0.999, epsilon=0.0, alpha=1e-3, state_dim = (18,34,5), batch_size=32,
+agent_red = a.Agent(n_actions=5, gamma=0.999, epsilon=0.0, alpha=1e-3, state_dim = (18,34,4), batch_size=32,
             buffer_size=(30000,), eps_final=0.1, name='Network_red')
 try:
   agent_red.NN = tfk.models.load_model('models/network_red')
@@ -50,7 +50,7 @@ try:
 except:
   print("couldn't load red")
 
-agent_blue = a.Agent(n_actions=5, gamma=0.999, epsilon=0.0, alpha=1e-3, state_dim = (18,34,5), batch_size=32,
+agent_blue = a.Agent(n_actions=5, gamma=0.999, epsilon=0.0, alpha=1e-3, state_dim = (18,34,4), batch_size=32,
             buffer_size=(30000,), eps_final=0.1,name='Network_blue')
 try:
   agent_blue.NN = tfk.models.load_model('models/network_blue')
@@ -142,8 +142,8 @@ class ReflexCaptureAgent(CaptureAgent):
     
     # You can profile your evaluation time by uncommenting these lines
     # start = time.time()
-    # action = self.get_NN_action(c_state, possible_actions)
-    action = self.get_base_action(gameState, actions)
+    action = self.get_NN_action(c_state, possible_actions)
+    # action = self.get_base_action(gameState, actions)
 
 
     action_num = ACTIONS[action]
@@ -153,11 +153,10 @@ class ReflexCaptureAgent(CaptureAgent):
     self.actions_ohc[action_num] = 1.0
     self.old_state = c_state
     self.old_gameState = gameState
-
     return action
 
 
-  def get_base_action(self, gameState, actions, epsilon=0.0):
+  def get_base_action(self, gameState, actions, epsilon=0.2):
     if np.random.rand() < epsilon:
       action = np.random.choice(actions)
     else:
@@ -252,16 +251,13 @@ class ReflexCaptureAgent(CaptureAgent):
     return {'successorScore': 1.0}
   
   def getOurFood(self, gameState):
-          if self.my_team is 'red':  # agent is red, wants to keep an eye on its food
-              food = np.array([[int(gameState.getRedFood()[i][j]) for i in range(self.width)]
+    food = np.array([[int(gameState.getRedFood()[i][j]) for i in range(self.width)]
                               for j in range(self.height)])
-              self.states.reorderMatrixLikeDisplay(gameState,food)
-              self.states.invertMatrixForRed(gameState,food)
-          else:
-              food = np.array([[int(gameState.getBlueFood()[i][j]) for i in range(self.width)]
-                              for j in range(self.height)])
-              self.states.reorderMatrixLikeDisplay(gameState,food)
-          return food
+    food = np.fliplr(food)
+    if self.my_team is 'red':  # agent is red, wants to keep an eye on its food
+        food = np.rot90(food,2)
+
+    return food
 
 
   def setNewFoodLastStep(self, gameState):

@@ -8,7 +8,7 @@ tfkl = tfk.layers
 tfm = tf.math
 
 class Network(tfk.Model):
-    def __init__(self,filters_1=32,filters_2=64, kernel_size_1=5, kernel_size_2=3,num_actions=5,alpha=1e-3, input_shape=(18,34)):
+    def __init__(self,filters_1=16,filters_2=32, kernel_size_1=5, kernel_size_2=3,num_actions=5,alpha=1e-3, input_shape=(18,34)):
         super(Network,self).__init__()
         s1, s2 = input_shape
         self.dense_shape = (s1*s2)//2
