@@ -163,19 +163,16 @@ class AgentAlphaBeta(CaptureAgent):
         print()
         print("- chooseAction -")
 
-        opponent_index1 = (self.index + 1) % 4
-        opponent_index2 = (self.index + 3) % 4
-        opponent1_state = gameState.getAgentState(opponent_index1)
-        opponent2_state = gameState.getAgentState(opponent_index2)
-        opponent_scared = (opponent1_state.scaredTimer > 0) or (opponent2_state.scaredTimer > 0)
-        print("cA :", opponent_scared)
-
         #actions = gameState.getLegalActions(self.index)
 
         state = self.createStateFromGameState(gameState)
         #state.printState()
         #children = state.next_states(self.index)
 
+        # TODO: REMOVE
+        """if state.color is 'red':
+            return "Stop"
+        """
         depth = DEPTH
         alpha = - np.inf
         beta = np.inf
@@ -191,7 +188,7 @@ class AgentAlphaBeta(CaptureAgent):
 
         end = time.time()
         precision = 1000
-        #print("time needed : ", int(precision*(end-begin)) / precision)
+        print("time needed : ", int(precision*(end-begin)) / precision)
         print("score =", state.score)
 
         return bestMove

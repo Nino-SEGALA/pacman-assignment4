@@ -272,10 +272,13 @@ def heuristic(state):
     collected = coll - coll_opp
 
     foodPosition = get_food_positions(state.food)
-    real_distance_food1 = distance_closest_bfs(state.wall, foodPosition, state.mainPosition)
-    real_distance_food2 = distance_closest_bfs(state.wall, foodPosition, state.teammatePosition)
-    distance_food1 = COEF_DISTANCE_FOOD1 * (real_distance_food1 / MAX_DISTANCE_FOOD)
-    distance_food2 = COEF_DISTANCE_FOOD2 * (real_distance_food2 / MAX_DISTANCE_FOOD)
+    distance_food1 = 0  # in case no more food
+    distance_food2 = 0  # in case no more food
+    if len(foodPosition) > 2:
+        real_distance_food1 = distance_closest_bfs(state.wall, foodPosition, state.mainPosition)
+        real_distance_food2 = distance_closest_bfs(state.wall, foodPosition, state.teammatePosition)
+        distance_food1 = COEF_DISTANCE_FOOD1 * (real_distance_food1 / MAX_DISTANCE_FOOD)
+        distance_food2 = COEF_DISTANCE_FOOD2 * (real_distance_food2 / MAX_DISTANCE_FOOD)
     distance_food = distance_food1 + distance_food2
 
     distance_our_agents = COEF_DISTANCE_OUR_AGENTS * get_distance_between_our_agents(state)
@@ -283,6 +286,9 @@ def heuristic(state):
     distance_homebase1 = COEF_DISTANCE_HOMEBASE1 * calculate_homebase_penalty(state, state.mainIndex, distance_food1)
     distance_homebase2 = COEF_DISTANCE_HOMEBASE2 * calculate_homebase_penalty(state, state.teammateIndex, distance_food2)
     distance_homebase = distance_homebase1 + distance_homebase2
+    if len(foodPosition) <= 2:  # Go home !
+        collected += 10
+        distance_our_agents = 0
 
     distance_enemy = COEF_DISTANCE_OPPONENT * distance_opponent(state, state.mainPosition, distance_homebase1)
 
