@@ -1,4 +1,4 @@
-# pacman-assignment4
+# Pacman Capture the Flag - assignment4
 DD2438 Pac-Man
 
 This project is about *UC Berkley’ Pac-man Capture the Flag*.
