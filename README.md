@@ -24,4 +24,4 @@ We used the following features in the heuristic fonction:
 * The distance between our agents
 * The distance from our main agent to our side
 * The distance from the teammate agent to our side
-*The distance from our main agent to the closest opponent
+* The distance from our main agent to the closest opponent
