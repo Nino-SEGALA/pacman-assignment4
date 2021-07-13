@@ -3,6 +3,8 @@ DD2438 Pac-Man
 
 This project is about *UC Berkley’ Pac-man Capture the Flag*.
 
+![current_field_random99](https://user-images.githubusercontent.com/44979794/125479682-c421d502-b0d1-41c8-8eb7-e7b1438ee3c5.PNG)
+
 We developed 2 solutions to control agents:
 - deep Q-learning algorithm
 - α−β tree search
@@ -25,3 +27,5 @@ We used the following features in the heuristic fonction:
 * The distance from our main agent to our side
 * The distance from the teammate agent to our side
 * The distance from our main agent to the closest opponent
+
+A complete report *DD2438_Report* of this project can also be found.
